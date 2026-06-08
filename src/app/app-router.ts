@@ -20,9 +20,9 @@ export function initRouter(outlet: HTMLElement) {
 		},
 		{
 			path: "/register",
-			component: "app-welcome-screen-page",
+			component: "register-page",
 			action: async () => {
-				await import("../pages/welcome-screen/welcome-screen.page");
+				await import("../pages/register/register.page");
 			},
 		},
 		{

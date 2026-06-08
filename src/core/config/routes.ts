@@ -15,3 +15,5 @@ export const ROUTES = {
 	createProfile: "/profiles/create",
 	logout: "/logout",
 } as const;
+
+export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

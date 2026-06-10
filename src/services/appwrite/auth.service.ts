@@ -1,19 +1,9 @@
 import { ID } from "appwrite";
+import type { LoginPayload, RegisterPayload } from "../auth/auth.types";
 import { account } from "./appwrite.client";
 
-type RegisterParams = {
-	email: string;
-	password: string;
-	name: string;
-};
-
-type LoginParams = {
-	email: string;
-	password: string;
-};
-
 export class AuthService {
-	async register({ email, password, name }: RegisterParams) {
+	async register({ email, password, name }: RegisterPayload) {
 		return account.create({
 			userId: ID.unique(),
 			email,
@@ -22,7 +12,7 @@ export class AuthService {
 		});
 	}
 
-	async login({ email, password }: LoginParams) {
+	async login({ email, password }: LoginPayload) {
 		return account.createEmailPasswordSession({
 			email,
 			password,

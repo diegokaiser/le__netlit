@@ -197,10 +197,13 @@ export class RegisterPage extends LitElement {
 					aria-labelledby="register-title"
 				>
 					<div
-						class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(220,38,38,0.35),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(127,29,29,0.3),_transparent_40%)]"
+						class="absolute inset-0 bg-[radial-gradient(circle_at_top,#dc2626_0,transparent_34%),linear-gradient(180deg,#171717_0%,#050505_100%)] opacity-70"
 					></div>
 					<div
-						class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/80 to-black"
+						class="absolute -left-24 top-20 h-72 w-72 rounded-full bg-red-700/20 blur-3xl"
+					></div>
+					<div
+						class="absolute -right-24 bottom-20 h-72 w-72 rounded-full bg-red-900/20 blur-3xl"
 					></div>
 
 					<div class="relative z-10 w-full max-w-md">

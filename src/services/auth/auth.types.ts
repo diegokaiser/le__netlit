@@ -9,3 +9,15 @@ export type RegisterResult = {
 	name: string;
 	email: string;
 };
+
+export type LoginPayload = {
+	email: string;
+	password: string;
+};
+
+export type AuthStatus = "idle" | "loading" | "success" | "error";
+
+export type LoginFormErrors = {
+	email?: string;
+	password?: string;
+};

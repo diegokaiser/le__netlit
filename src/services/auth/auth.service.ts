@@ -1,6 +1,10 @@
-import { ID } from "appwrite";
+import { ID, type Models } from "appwrite";
 import { account } from "../appwrite/appwrite.client";
-import type { RegisterPayload, RegisterResult } from "./auth.types";
+import type {
+	LoginPayload,
+	RegisterPayload,
+	RegisterResult,
+} from "./auth.types";
 
 export const authService = {
 	async register(payload: RegisterPayload): Promise<RegisterResult> {
@@ -16,5 +20,12 @@ export const authService = {
 			name: user.name,
 			email: user.email,
 		};
+	},
+
+	async login(payload: LoginPayload): Promise<Models.Session> {
+		return account.createEmailPasswordSession({
+			email: payload.email,
+			password: payload.password,
+		});
 	},
 };

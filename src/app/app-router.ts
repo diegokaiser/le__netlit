@@ -13,9 +13,9 @@ export function initRouter(outlet: HTMLElement) {
 		},
 		{
 			path: "/login",
-			component: "app-welcome-screen-page",
+			component: "login-page",
 			action: async () => {
-				await import("../pages/welcome-screen/welcome-screen.page");
+				await import("../pages/login/login.page");
 			},
 		},
 		{

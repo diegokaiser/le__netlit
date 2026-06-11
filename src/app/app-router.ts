@@ -33,6 +33,13 @@ export function initRouter(outlet: HTMLElement) {
 			},
 		},
 		{
+			path: "/forgot-password",
+			component: "forgot-password-page",
+			action: async () => {
+				await import("../pages/forgot-password/forgot-password.page");
+			},
+		},
+		{
 			path: "(.*)",
 			component: "app-welcome-screen-page",
 			action: async () => {

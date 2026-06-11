@@ -55,4 +55,11 @@ export const authService = {
 			secret,
 		});
 	},
+
+	async forgotPassword(email: string, redirectUrl: string): Promise<unknown> {
+		return account.createRecovery({
+			email,
+			url: redirectUrl,
+		});
+	},
 };

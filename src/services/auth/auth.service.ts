@@ -29,6 +29,14 @@ export const authService = {
 		});
 	},
 
+	async getCurrentUser() {
+		return account.get();
+	},
+
+	async logout() {
+		return account.deleteSession({ sessionId: "current" });
+	},
+
 	async sendVerification(url: string): Promise<unknown> {
 		const createVerification =
 			this.verificationAccount.createVerification ??
@@ -60,6 +68,14 @@ export const authService = {
 		return account.createRecovery({
 			email,
 			url: redirectUrl,
+		});
+	},
+
+	async createNewPassword(userId: string, secret: string, newPassword: string) {
+		return account.updateRecovery({
+			userId,
+			secret,
+			password: newPassword,
 		});
 	},
 };

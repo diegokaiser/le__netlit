@@ -40,6 +40,13 @@ export function initRouter(outlet: HTMLElement) {
 			},
 		},
 		{
+			path: "/create-new-password",
+			component: "create-new-password-page",
+			action: async () => {
+				await import("../pages/create-new-password/create-new-password.page");
+			},
+		},
+		{
 			path: "(.*)",
 			component: "app-welcome-screen-page",
 			action: async () => {

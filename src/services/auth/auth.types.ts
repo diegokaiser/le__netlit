@@ -1,3 +1,5 @@
+import type { account } from "../appwrite/appwrite.client";
+
 export type RegisterPayload = {
 	name: string;
 	email: string;
@@ -20,4 +22,24 @@ export type AuthStatus = "idle" | "loading" | "success" | "error";
 export type LoginFormErrors = {
 	email?: string;
 	password?: string;
+};
+
+export type CreateVerificationPayload = {
+	url: string;
+};
+
+export type UpdateVerificationPayload = {
+	userId: string;
+	secret: string;
+};
+
+export type VerificationPayload = typeof account & {
+	createVerification?: (params: CreateVerificationPayload) => Promise<unknown>;
+	updateVerification?: (params: UpdateVerificationPayload) => Promise<unknown>;
+	createEmailVerification?: (
+		params: CreateVerificationPayload,
+	) => Promise<unknown>;
+	updateEmailVerification?: (
+		params: UpdateVerificationPayload,
+	) => Promise<unknown>;
 };

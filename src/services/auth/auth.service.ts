@@ -28,4 +28,31 @@ export const authService = {
 			password: payload.password,
 		});
 	},
+
+	async sendVerification(url: string): Promise<unknown> {
+		const createVerification =
+			this.verificationAccount.createVerification ??
+			this.verificationAccount.createEmailVerification;
+
+		if (!createVerification) {
+			throw new Error("no hay metodo de creacion de verificacion");
+		}
+
+		return createVerification.call(this.verificationAccount, { url });
+	},
+
+	async confirmVerification(userId: string, secret: string): Promise<unknown> {
+		const updateVerification =
+			this.verificationAccount.updateVerification ??
+			this.verificationAccount.updateEmailVerification;
+
+		if (!updateVerification) {
+			throw new Error("no hay metodo de confiormacion de verificacion");
+		}
+
+		return updateVerification.call(this.verificationAccount, {
+			userId,
+			secret,
+		});
+	},
 };

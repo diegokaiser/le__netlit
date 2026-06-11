@@ -2,6 +2,24 @@ import { ID } from "appwrite";
 import type { LoginPayload, RegisterPayload } from "../auth/auth.types";
 import { account } from "./appwrite.client";
 
+<<<<<<< Updated upstream
+=======
+/*************/
+/** NO USAR **/
+/*************/
+
+type RegisterParams = {
+	email: string;
+	password: string;
+	name: string;
+};
+
+type LoginParams = {
+	email: string;
+	password: string;
+};
+
+>>>>>>> Stashed changes
 export class AuthService {
 	async register({ email, password, name }: RegisterPayload) {
 		return account.create({

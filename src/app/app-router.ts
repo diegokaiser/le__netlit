@@ -26,6 +26,13 @@ export function initRouter(outlet: HTMLElement) {
 			},
 		},
 		{
+			path: "/verify-account",
+			component: "verify-account-page",
+			action: async () => {
+				await import("../pages/verify-account/verify-account.page");
+			},
+		},
+		{
 			path: "(.*)",
 			component: "app-welcome-screen-page",
 			action: async () => {

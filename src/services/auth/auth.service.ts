@@ -1,6 +1,8 @@
 import { ID, type Models } from "appwrite";
 import { account } from "../appwrite/appwrite.client";
 import type {
+	EmailOTPSessionResult,
+	EmailOTPTokenPayload,
 	LoginPayload,
 	RegisterPayload,
 	RegisterResult,
@@ -76,6 +78,33 @@ export const authService = {
 			userId,
 			secret,
 			password: newPassword,
+		});
+	},
+
+	async createEmailOtp(email: string): Promise<EmailOTPTokenPayload> {
+		const token = await account.createEmailToken({
+			userId: ID.unique(),
+			email,
+			phrase: false,
+		});
+
+		const tokenWithOptionalPhrase = token as typeof token & {
+			phrase?: string;
+		};
+
+		return {
+			userId: token.userId,
+			phrase: tokenWithOptionalPhrase.phrase,
+		};
+	},
+
+	async verifyEmailOtp(
+		userId: string,
+		secret: string,
+	): Promise<EmailOTPSessionResult> {
+		return account.createSession({
+			userId,
+			secret,
 		});
 	},
 };

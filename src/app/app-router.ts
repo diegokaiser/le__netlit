@@ -47,6 +47,13 @@ export function initRouter(outlet: HTMLElement) {
 			},
 		},
 		{
+			path: "/otp",
+			component: "otp-page",
+			action: async () => {
+				await import("../pages/otp/otp.page");
+			},
+		},
+		{
 			path: "(.*)",
 			component: "app-welcome-screen-page",
 			action: async () => {

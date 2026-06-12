@@ -1,3 +1,4 @@
+import type { Models } from "appwrite";
 import type { account } from "../appwrite/appwrite.client";
 
 export type RegisterPayload = {
@@ -43,3 +44,10 @@ export type VerificationPayload = typeof account & {
 		params: UpdateVerificationPayload,
 	) => Promise<unknown>;
 };
+
+export type EmailOTPTokenPayload = {
+	userId: string;
+	phrase: string;
+};
+
+export type EmailOTPSessionResult = Models.Session;

@@ -51,12 +51,12 @@ export class ProfilesPage extends LitElement {
 		return this.status === "selecting";
 	}
 
-	private getErrorMessage(error: unknown): string {
+	private getErrorMessage(error: unknown, fallbackMessage: string): string {
 		if (error instanceof ProfileServiceError) {
 			return error.message;
 		}
 
-		return "No se pudieron cargar los perfiles. Inténtalo de nuevo.";
+		return fallbackMessage;
 	}
 
 	private async loadProfiles(): Promise<void> {
@@ -85,7 +85,10 @@ export class ProfilesPage extends LitElement {
 		} catch (error) {
 			this.profiles = [];
 			this.activeProfileId = null;
-			this.errorMessage = this.getErrorMessage(error);
+			this.errorMessage = this.getErrorMessage(
+				error,
+				"No se pudieron cargar los perfiles. Inténtalo de nuevo.",
+			);
 			this.status = "error";
 		}
 	}
@@ -114,7 +117,10 @@ export class ProfilesPage extends LitElement {
 			this.activeProfileId = profileId;
 			Router.go(ROUTES.welcome);
 		} catch (error) {
-			this.errorMessage = this.getErrorMessage(error);
+			this.errorMessage = this.getErrorMessage(
+				error,
+				"No se pudo cambiar el perfil. Comprueba tu conexión e inténtalo de nuevo.",
+			);
 			this.status = "error";
 			this.selectingProfileId = null;
 		}

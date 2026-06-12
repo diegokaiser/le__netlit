@@ -12,6 +12,7 @@ export const ROUTES = {
 	mediaDetail: "/media/:mediaType/:mediaId",
 	seasonDetail: "/media/tv/:seriesId/season/:seasonNumber",
 	profile: "/profile",
+	profiles: "/profiles",
 	createProfile: "/profiles/create",
 	logout: "/logout",
 } as const;

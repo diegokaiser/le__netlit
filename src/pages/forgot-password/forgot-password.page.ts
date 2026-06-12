@@ -232,7 +232,7 @@ export class ForgotPasswordPage extends LitElement {
 								</div>
 
 								<button
-									class="w-full rounded-md bg-red-600 px-4 py-3 font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
+									class="cursor-pointer w-full rounded-md bg-red-600 px-4 py-3 font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
 									type="submit"
 									?disabled=${isLoading}
 								>

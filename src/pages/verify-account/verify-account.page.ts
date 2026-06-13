@@ -252,7 +252,7 @@ export class VerifyAccountPage extends LitElement {
 
 				<div class="space-y-3">
 					<button
-						class="inline-flex w-full items-center justify-center rounded-md bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
+						class="cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
 						type="button"
 						@click=${() => this.handleResendVerification()}
 					>

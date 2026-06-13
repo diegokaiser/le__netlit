@@ -275,7 +275,7 @@ export class LoginPage extends LitElement {
 							<button
 								type="submit"
 								?disabled=${this.isLoading}
-								class="mt-7 w-full rounded-lg bg-red-600 px-5 py-3 text-base font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black disabled:cursor-not-allowed disabled:bg-red-900 disabled:text-neutral-300"
+								class="cursor-pointer mt-7 w-full rounded-lg bg-red-600 px-5 py-3 text-base font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black disabled:cursor-not-allowed disabled:bg-red-900 disabled:text-neutral-300"
 							>
 								${this.isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
 							</button>

@@ -284,7 +284,7 @@ export class OtpPage extends LitElement {
 				</div>
 
 				<button
-					class="w-full rounded-lg bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+					class="cursor-pointer w-full rounded-lg bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
 					type="submit"
 					?disabled=${this.isBusy}
 				>
@@ -351,7 +351,7 @@ export class OtpPage extends LitElement {
 				</div>
 
 				<button
-					class="w-full rounded-lg bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+					class="cursor-pointer w-full rounded-lg bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
 					type="submit"
 					?disabled=${this.isBusy}
 				>
@@ -359,7 +359,7 @@ export class OtpPage extends LitElement {
 				</button>
 
 				<button
-					class="w-full rounded-lg border border-zinc-700 px-5 py-3 font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
+					class="cursor-pointer w-full rounded-lg border border-zinc-700 px-5 py-3 font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
 					type="button"
 					?disabled=${this.isBusy}
 					@click=${this.handleResendCode}

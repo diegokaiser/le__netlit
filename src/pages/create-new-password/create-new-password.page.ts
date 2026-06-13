@@ -339,7 +339,7 @@ export class CreateNewPasswordPage extends LitElement {
 
 					<button
 						type="submit"
-						class="inline-flex w-full items-center justify-center rounded-md bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:cursor-not-allowed disabled:opacity-70"
+						class="cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:cursor-not-allowed disabled:opacity-70"
 						?disabled=${isLoading}
 					>
 						${isLoading

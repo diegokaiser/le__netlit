@@ -262,6 +262,17 @@ export class RegisterPage extends LitElement {
 											: nothing}
 										@input=${this.handleInput}
 									/>
+									${this.errors.name
+										? html`
+												<p
+													id="name-error"
+													role="alert"
+													class="text-red-500 text-sm"
+												>
+													${this.errors.name}
+												</p>
+											`
+										: null}
 									${this.renderFieldError("name")}
 								</div>
 
@@ -287,6 +298,17 @@ export class RegisterPage extends LitElement {
 											: nothing}
 										@input=${this.handleInput}
 									/>
+									${this.errors.email
+										? html`
+												<p
+													id="email-error"
+													role="alert"
+													class="text-red-500 text-sm"
+												>
+													${this.errors.email}
+												</p>
+											`
+										: null}
 									${this.renderFieldError("email")}
 								</div>
 
@@ -312,6 +334,17 @@ export class RegisterPage extends LitElement {
 											: nothing}
 										@input=${this.handleInput}
 									/>
+									${this.errors.password
+										? html`
+												<p
+													id="password-error"
+													role="alert"
+													class="text-red-500 text-sm"
+												>
+													${this.errors.password}
+												</p>
+											`
+										: null}
 									${this.renderFieldError("password")}
 								</div>
 
@@ -339,6 +372,17 @@ export class RegisterPage extends LitElement {
 											: nothing}
 										@input=${this.handleInput}
 									/>
+									${this.errors.confirmPassword
+										? html`
+												<p
+													id="confirm-password-error"
+													role="alert"
+													class="text-red-500 text-sm"
+												>
+													${this.errors.confirmPassword}
+												</p>
+											`
+										: null}
 									${this.renderFieldError("confirmPassword")}
 								</div>
 							</div>

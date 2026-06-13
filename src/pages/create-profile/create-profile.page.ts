@@ -83,6 +83,9 @@ export class CreateProfilePage extends LitElement {
 
 			this.status = profiles.length >= MAX_PROFILES ? "limit-reached" : "idle";
 		} catch {
+			this.currentUserId = "";
+			this.existingProfileCount = 0;
+
 			this.status = "error";
 			this.errorMessage =
 				"No se pudo preparar la creación del perfil. Inténtalo de nuevo.";

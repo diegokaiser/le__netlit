@@ -303,9 +303,7 @@ describe("login-page", () => {
 			$updatedAt: "",
 		});
 
-		const routerGoSpy = vi
-			.spyOn(Router, "go")
-			.mockImplementation(() => undefined);
+		const routerGoSpy = vi.spyOn(Router, "go").mockReturnValue(true);
 
 		const element = await createLoginPage();
 
@@ -332,9 +330,7 @@ describe("login-page", () => {
 			.spyOn(authService, "login")
 			.mockRejectedValue(new Error("Invalid credentials"));
 
-		const routerGoSpy = vi
-			.spyOn(Router, "go")
-			.mockImplementation(() => undefined);
+		const routerGoSpy = vi.spyOn(Router, "go").mockReturnValue(true);
 
 		const element = await createLoginPage();
 

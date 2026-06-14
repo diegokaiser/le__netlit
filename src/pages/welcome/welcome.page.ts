@@ -284,7 +284,6 @@ export class WelcomePage extends LitElement {
 					`,
 				)}
 			</section>
-			getAccessibleStatus
 		`;
 	}
 

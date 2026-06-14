@@ -10,7 +10,7 @@
 		"test": "vitest",
 		"test:ui": "vitest --ui",
 		"test:browser": "vitest --browser",
-		"check": "pnpm build && pnpm test"
+		"check": "pnpm build && pnpm test --run"
 	},
 	"dependencies": {
 		"@lit/context": "^1.1.6",

@@ -21,6 +21,8 @@ import {
 	type CreateProfilePageStatus,
 } from "../../services/profile/profile.types";
 
+import { createActiveProfileChangedEvent } from "../../core/context/active-profile.context";
+
 type CreateProfileFormErrors = {
 	name?: string;
 	avatarId?: string;
@@ -185,15 +187,25 @@ export class CreateProfilePage extends LitElement {
 		this.status = "loading";
 
 		try {
-			await profileService.createProfile(this.currentUserId, {
-				name: this.name,
-				avatarId: this.avatarId,
-				isKids: this.isKids,
-			});
+			const createdProfile = await profileService.createProfile(
+				this.currentUserId,
+				{
+					name: this.name,
+					avatarId: this.avatarId,
+					isKids: this.isKids,
+				},
+			);
 
 			this.status = "success";
 
-			Router.go(wasFirstProfile ? ROUTES.welcome : ROUTES.profiles);
+			if (wasFirstProfile) {
+				this.dispatchEvent(createActiveProfileChangedEvent(createdProfile));
+
+				Router.go(ROUTES.welcome);
+				return;
+			}
+
+			Router.go(ROUTES.profiles);
 		} catch (error) {
 			if (
 				error instanceof ProfileServiceError &&

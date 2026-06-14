@@ -15,6 +15,8 @@ import {
 	type ProfilesPageStatus,
 } from "../../services/profile/profile.types";
 
+import { createActiveProfileChangedEvent } from "../../core/context/active-profile.context";
+
 @customElement("profiles-page")
 export class ProfilesPage extends LitElement {
 	@state()
@@ -82,6 +84,8 @@ export class ProfilesPage extends LitElement {
 			this.profiles = profiles;
 			this.activeProfileId = activeProfile?.id ?? null;
 			this.status = profiles.length === 0 ? "empty" : "ready";
+
+			this.dispatchEvent(createActiveProfileChangedEvent(activeProfile));
 		} catch (error) {
 			this.profiles = [];
 			this.activeProfileId = null;
@@ -91,6 +95,10 @@ export class ProfilesPage extends LitElement {
 			);
 			this.status = "error";
 		}
+	}
+
+	private getProfileById(profileId: string): Profile | undefined {
+		return this.profiles.find((profile) => profile.id === profileId);
 	}
 
 	private async handleProfileSelected(
@@ -103,6 +111,12 @@ export class ProfilesPage extends LitElement {
 		}
 
 		if (profileId === this.activeProfileId) {
+			const activeProfile = this.getProfileById(profileId);
+
+			if (activeProfile) {
+				this.dispatchEvent(createActiveProfileChangedEvent(activeProfile));
+			}
+
 			Router.go(ROUTES.welcome);
 			return;
 		}
@@ -114,7 +128,19 @@ export class ProfilesPage extends LitElement {
 		try {
 			await profileService.setActiveProfile(this.currentUserId, profileId);
 
+			const selectedProfile = this.getProfileById(profileId);
+
+			if (!selectedProfile) {
+				throw new ProfileServiceError(
+					"profile-not-found",
+					"El perfil seleccionado no está disponible.",
+				);
+			}
+
 			this.activeProfileId = profileId;
+
+			this.dispatchEvent(createActiveProfileChangedEvent(selectedProfile));
+
 			Router.go(ROUTES.welcome);
 		} catch (error) {
 			this.errorMessage = this.getErrorMessage(

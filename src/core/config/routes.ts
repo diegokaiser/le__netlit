@@ -1,3 +1,5 @@
+import type { MediaType } from "../../services/tmdb/tmdb.types";
+
 export const ROUTES = {
 	welcomeScreen: "/",
 	login: "/login",
@@ -18,3 +20,16 @@ export const ROUTES = {
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
+
+export type MediaCategory = "movies" | "series" | "documentaries";
+
+export function buildCategoryRoute(category: MediaCategory): string {
+	return `/category/${category}`;
+}
+
+export function buildMediaDetailRoute(
+	mediaType: MediaType,
+	mediaId: number,
+): string {
+	return `/media/${mediaType}/${mediaId}`;
+}

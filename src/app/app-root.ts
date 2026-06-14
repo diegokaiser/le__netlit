@@ -1,28 +1,45 @@
+import { provide } from "@lit/context";
 import { LitElement, html } from "lit";
-import { customElement, query } from "lit/decorators.js";
+import { customElement, property, query } from "lit/decorators.js";
 
+import {
+	activeProfileContext,
+	type ActiveProfileChangedEvent,
+	type ActiveProfileContextValue,
+} from "../core/context/active-profile.context";
 import { initRouter } from "./app-router";
 
 @customElement("app-root")
 export class AppRoot extends LitElement {
-	// busca #router-outlet en el template
+	@provide({
+		context: activeProfileContext,
+	})
+	@property({
+		attribute: false,
+	})
+	activeProfile: ActiveProfileContextValue = undefined;
+
 	@query("#router-outlet")
-	// guarda la referencia en routerOutlet
 	private routerOutlet!: HTMLElement;
 
-	// usa light DOM para aplicar estilos globales
 	protected createRenderRoot() {
 		return this;
 	}
 
-	// ejecutado solo una vez despues del primer render
-	firstUpdated() {
-		// recibe el elemento routerOutlet donde se va a renderizar las paginas
+	firstUpdated(): void {
 		initRouter(this.routerOutlet);
 	}
 
+	private handleActiveProfileChanged(event: ActiveProfileChangedEvent): void {
+		this.activeProfile = event.detail.profile;
+	}
+
 	render() {
-		// contenedor donde el router renderizara las paginas
-		return html` <main id="router-outlet"></main> `;
+		return html`
+			<div
+				id="router-outlet"
+				@active-profile-changed=${this.handleActiveProfileChanged}
+			></div>
+		`;
 	}
 }

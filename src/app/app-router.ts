@@ -9,9 +9,16 @@ export function initRouter(outlet: HTMLElement) {
 	router.setRoutes([
 		{
 			path: ROUTES.welcomeScreen,
-			component: "app-welcome-screen-page",
-			action: async () => {
+			action: async (_context, commands) => {
+				const user = await requireAuthenticatedUser();
+
+				if (user) {
+					return commands.redirect(ROUTES.welcome);
+				}
+
 				await import("../pages/welcome-screen/welcome-screen.page");
+
+				return commands.component("app-welcome-screen-page");
 			},
 		},
 		{
@@ -58,9 +65,28 @@ export function initRouter(outlet: HTMLElement) {
 		},
 		{
 			path: ROUTES.welcome,
-			component: "app-welcome-screen-page",
-			action: async () => {
-				await import("../pages/welcome-screen/welcome-screen.page");
+			action: async (_context, commands) => {
+				const user = await requireAuthenticatedUser();
+
+				if (!user) {
+					return commands.redirect(ROUTES.login);
+				}
+
+				await import("../pages/welcome/welcome.page");
+
+				return commands.component("welcome-page");
+			},
+		},
+		{
+			path: ROUTES.category,
+			action: async (_context, commands) => {
+				const user = await requireAuthenticatedUser();
+
+				if (!user) {
+					return commands.redirect(ROUTES.login);
+				}
+
+				return commands.redirect(ROUTES.welcome);
 			},
 		},
 		{

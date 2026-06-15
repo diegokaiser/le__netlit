@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { mapTmdbMovie, mapTmdbTrendingItem, mapTmdbTv } from "./tmdb.mapper";
+import {
+	mapTmdbMovie,
+	mapTmdbPage,
+	mapTmdbTrendingItem,
+	mapTmdbTv,
+} from "./tmdb.mapper";
 import type {
+	MediaItem,
+	TmdbListResponse,
 	TmdbMovieResult,
 	TmdbTrendingResult,
 	TmdbTvResult,
@@ -382,5 +389,164 @@ describe("mapTmdbTrendingItem", () => {
 
 		expect(mappedItems).toHaveLength(2);
 		expect(mappedItems.map((item) => item.mediaType)).toEqual(["movie", "tv"]);
+	});
+});
+
+describe("mapTmdbPage", () => {
+	it("transforma los resultados mediante el mapper recibido", () => {
+		const response: TmdbListResponse<TmdbMovieResult> = {
+			page: 2,
+			results: [
+				createMovie({
+					id: 101,
+					title: "Primera película",
+				}),
+				createMovie({
+					id: 202,
+					title: "Segunda película",
+				}),
+			],
+			total_pages: 8,
+			total_results: 150,
+		};
+
+		const result = mapTmdbPage(response, mapTmdbMovie);
+
+		expect(result.items).toHaveLength(2);
+
+		expect(result.items[0]).toMatchObject({
+			id: 101,
+			mediaType: "movie",
+			title: "Primera película",
+		});
+
+		expect(result.items[1]).toMatchObject({
+			id: 202,
+			mediaType: "movie",
+			title: "Segunda película",
+		});
+	});
+
+	it("conserva page y normaliza la metadata paginada", () => {
+		const response: TmdbListResponse<TmdbMovieResult> = {
+			page: 3,
+			results: [createMovie()],
+			total_pages: 12,
+			total_results: 237,
+		};
+
+		const result = mapTmdbPage(response, mapTmdbMovie);
+
+		expect(result.page).toBe(3);
+		expect(result.totalPages).toBe(12);
+		expect(result.totalResults).toBe(237);
+	});
+
+	it("invoca el mapper una vez por elemento y conserva el orden", () => {
+		const firstMovie = createMovie({
+			id: 101,
+			title: "Primera",
+		});
+
+		const secondMovie = createMovie({
+			id: 202,
+			title: "Segunda",
+		});
+
+		const firstMedia: MediaItem = {
+			id: 1001,
+			mediaType: "movie",
+			title: "Primera transformada",
+			overview: "",
+			posterPath: null,
+			backdropPath: null,
+			voteAverage: 0,
+			genreIds: [],
+		};
+
+		const secondMedia: MediaItem = {
+			id: 2002,
+			mediaType: "movie",
+			title: "Segunda transformada",
+			overview: "",
+			posterPath: null,
+			backdropPath: null,
+			voteAverage: 0,
+			genreIds: [],
+		};
+
+		const mapper = vi
+			.fn<(item: TmdbMovieResult) => MediaItem>()
+			.mockReturnValueOnce(firstMedia)
+			.mockReturnValueOnce(secondMedia);
+
+		const response: TmdbListResponse<TmdbMovieResult> = {
+			page: 1,
+			results: [firstMovie, secondMovie],
+			total_pages: 1,
+			total_results: 2,
+		};
+
+		const result = mapTmdbPage(response, mapper);
+
+		expect(mapper).toHaveBeenCalledTimes(2);
+		expect(mapper).toHaveBeenNthCalledWith(1, firstMovie, 0, response.results);
+		expect(mapper).toHaveBeenNthCalledWith(2, secondMovie, 1, response.results);
+		expect(result.items).toEqual([firstMedia, secondMedia]);
+	});
+
+	it("devuelve items vacíos y conserva la metadata cuando results está vacío", () => {
+		const mapper = vi.fn<(item: TmdbMovieResult) => MediaItem>();
+
+		const response: TmdbListResponse<TmdbMovieResult> = {
+			page: 4,
+			results: [],
+			total_pages: 4,
+			total_results: 60,
+		};
+
+		const result = mapTmdbPage(response, mapper);
+
+		expect(result).toEqual({
+			items: [],
+			page: 4,
+			totalPages: 4,
+			totalResults: 60,
+		});
+
+		expect(mapper).not.toHaveBeenCalled();
+	});
+
+	it("no muta la respuesta original ni sus resultados", () => {
+		const firstMovie = createMovie({
+			id: 101,
+			title: "Película original",
+			genre_ids: [12, 878],
+		});
+
+		const secondMovie = createMovie({
+			id: 202,
+			title: "Segunda película",
+			genre_ids: [18],
+		});
+
+		const response: TmdbListResponse<TmdbMovieResult> = {
+			page: 2,
+			results: [firstMovie, secondMovie],
+			total_pages: 5,
+			total_results: 90,
+		};
+
+		const originalSnapshot = structuredClone(response);
+		const originalResultsReference = response.results;
+		const originalFirstMovieReference = response.results[0];
+		const originalSecondMovieReference = response.results[1];
+
+		mapTmdbPage(response, mapTmdbMovie);
+
+		expect(response).toEqual(originalSnapshot);
+		expect(response.results).toBe(originalResultsReference);
+		expect(response.results[0]).toBe(originalFirstMovieReference);
+		expect(response.results[1]).toBe(originalSecondMovieReference);
 	});
 });

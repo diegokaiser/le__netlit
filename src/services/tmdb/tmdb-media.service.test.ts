@@ -153,6 +153,327 @@ describe("TmdbMediaService.getTrending", () => {
 	});
 });
 
+describe("TmdbMediaService.getMoviesPage", () => {
+	it("consulta películas populares, reenvía la señal y devuelve MediaPage normalizado", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		const response: TmdbListResponse<TmdbMovieResult> = {
+			page: 1,
+			results: [
+				createMovieResult({
+					id: 404,
+					title: "Película paginada",
+				}),
+			],
+			total_pages: 8,
+			total_results: 147,
+		};
+
+		mocks.tmdbFetch.mockResolvedValue(response);
+
+		const result = await service.getMoviesPage(1, abortController.signal);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/movie/popular",
+			{
+				language: "es-ES",
+				page: 1,
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		expect(result).toEqual({
+			items: [
+				{
+					id: 404,
+					mediaType: "movie",
+					title: "Película paginada",
+					overview: "Una historia ambientada en Arrakis.",
+					posterPath: "/dune-poster.jpg",
+					backdropPath: "/dune-backdrop.jpg",
+					voteAverage: 8.2,
+					releaseDate: "2021-10-22",
+					genreIds: [12, 878],
+				},
+			],
+			page: 1,
+			totalPages: 8,
+			totalResults: 147,
+		});
+	});
+
+	it("conserva la metadata cuando TMDB devuelve una página vacía", async () => {
+		const service = new TmdbMediaService();
+
+		const response: TmdbListResponse<TmdbMovieResult> = {
+			page: 6,
+			results: [],
+			total_pages: 6,
+			total_results: 103,
+		};
+
+		mocks.tmdbFetch.mockResolvedValue(response);
+
+		await expect(service.getMoviesPage(6)).resolves.toEqual({
+			items: [],
+			page: 6,
+			totalPages: 6,
+			totalResults: 103,
+		});
+	});
+
+	it("propaga los errores producidos por tmdbFetch", async () => {
+		const service = new TmdbMediaService();
+		const networkError = new TypeError("Failed to fetch");
+
+		mocks.tmdbFetch.mockRejectedValue(networkError);
+
+		await expect(service.getMoviesPage(1)).rejects.toBe(networkError);
+	});
+
+	it("propaga AbortError y reenvía la señal abortada", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+		const abortError = new DOMException(
+			"The operation was aborted.",
+			"AbortError",
+		);
+
+		abortController.abort();
+
+		mocks.tmdbFetch.mockRejectedValue(abortError);
+
+		await expect(service.getMoviesPage(1, abortController.signal)).rejects.toBe(
+			abortError,
+		);
+
+		expect(abortController.signal.aborted).toBe(true);
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/movie/popular",
+			{
+				language: "es-ES",
+				page: 1,
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+	});
+});
+
+describe("TmdbMediaService.getSeriesPage", () => {
+	it("consulta series populares y devuelve MediaPage normalizado", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		const response: TmdbListResponse<TmdbTvResult> = {
+			page: 2,
+			results: [
+				createTvResult({
+					id: 505,
+					name: "Serie paginada",
+				}),
+			],
+			total_pages: 5,
+			total_results: 84,
+		};
+
+		mocks.tmdbFetch.mockResolvedValue(response);
+
+		const result = await service.getSeriesPage(2, abortController.signal);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/tv/popular",
+			{
+				language: "es-ES",
+				page: 2,
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		expect(result).toEqual({
+			items: [
+				{
+					id: 505,
+					mediaType: "tv",
+					title: "Serie paginada",
+					overview: "Una serie sobre viajes en el tiempo.",
+					posterPath: "/dark-poster.jpg",
+					backdropPath: "/dark-backdrop.jpg",
+					voteAverage: 8.7,
+					releaseDate: "2017-12-01",
+					genreIds: [18, 9648],
+				},
+			],
+			page: 2,
+			totalPages: 5,
+			totalResults: 84,
+		});
+	});
+});
+
+describe("TmdbMediaService.getDocumentariesPage", () => {
+	it("obtiene Documentary y consulta discover/movie con los filtros esperados", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		const genreResponse: TmdbGenreListResponse = {
+			genres: [
+				{
+					id: 18,
+					name: "Drama",
+				},
+				{
+					id: 99,
+					name: "Documentary",
+				},
+			],
+		};
+
+		const documentariesResponse: TmdbListResponse<TmdbMovieResult> = {
+			page: 3,
+			results: [
+				createMovieResult({
+					id: 606,
+					title: "Documental paginado",
+					genre_ids: [99],
+				}),
+			],
+			total_pages: 9,
+			total_results: 173,
+		};
+
+		mocks.tmdbFetch
+			.mockResolvedValueOnce(genreResponse)
+			.mockResolvedValueOnce(documentariesResponse);
+
+		const result = await service.getDocumentariesPage(
+			3,
+			abortController.signal,
+		);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(2);
+
+		expect(mocks.tmdbFetch).toHaveBeenNthCalledWith(
+			1,
+			"/genre/movie/list",
+			{
+				language: "en-US",
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		expect(mocks.tmdbFetch).toHaveBeenNthCalledWith(
+			2,
+			"/discover/movie",
+			{
+				language: "es-ES",
+				page: 3,
+				sort_by: "popularity.desc",
+				with_genres: 99,
+				include_adult: false,
+				include_video: false,
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		expect(result).toEqual({
+			items: [
+				{
+					id: 606,
+					mediaType: "movie",
+					title: "Documental paginado",
+					overview: "Una historia ambientada en Arrakis.",
+					posterPath: "/dune-poster.jpg",
+					backdropPath: "/dune-backdrop.jpg",
+					voteAverage: 8.2,
+					releaseDate: "2021-10-22",
+					genreIds: [99],
+				},
+			],
+			page: 3,
+			totalPages: 9,
+			totalResults: 173,
+		});
+	});
+
+	it("reutiliza el genreId cacheado en páginas documentales posteriores", async () => {
+		const service = new TmdbMediaService();
+
+		mocks.tmdbFetch
+			.mockResolvedValueOnce({
+				genres: [
+					{
+						id: 99,
+						name: "Documentary",
+					},
+				],
+			} satisfies TmdbGenreListResponse)
+			.mockResolvedValueOnce({
+				page: 1,
+				results: [
+					createMovieResult({
+						id: 701,
+						title: "Primer documental",
+					}),
+				],
+				total_pages: 4,
+				total_results: 70,
+			} satisfies TmdbListResponse<TmdbMovieResult>)
+			.mockResolvedValueOnce({
+				page: 2,
+				results: [
+					createMovieResult({
+						id: 702,
+						title: "Segundo documental",
+					}),
+				],
+				total_pages: 4,
+				total_results: 70,
+			} satisfies TmdbListResponse<TmdbMovieResult>);
+
+		const firstPage = await service.getDocumentariesPage(1);
+		const secondPage = await service.getDocumentariesPage(2);
+
+		expect(firstPage.items[0]?.title).toBe("Primer documental");
+		expect(secondPage.items[0]?.title).toBe("Segundo documental");
+		expect(firstPage.page).toBe(1);
+		expect(secondPage.page).toBe(2);
+
+		const genreRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/genre/movie/list",
+		);
+
+		const discoverRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/discover/movie",
+		);
+
+		expect(genreRequests).toHaveLength(1);
+		expect(discoverRequests).toHaveLength(2);
+
+		expect(discoverRequests[0]?.[1]).toMatchObject({
+			page: 1,
+			with_genres: 99,
+		});
+
+		expect(discoverRequests[1]?.[1]).toMatchObject({
+			page: 2,
+			with_genres: 99,
+		});
+	});
+});
+
 describe("TmdbMediaService.getPopularMovies", () => {
 	it("consulta y normaliza películas populares", async () => {
 		const service = new TmdbMediaService();

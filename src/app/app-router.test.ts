@@ -222,7 +222,7 @@ describe("initRouter", () => {
 		});
 	});
 
-	it("redirige las categorías temporalmente a welcome cuando existe sesión", async () => {
+	it("carga la página de categoría cuando existe sesión", async () => {
 		const { routes } = initializeRouter();
 		const commands = createCommands();
 
@@ -241,11 +241,11 @@ describe("initRouter", () => {
 			commands,
 		);
 
-		expect(commands.redirect).toHaveBeenCalledWith(ROUTES.welcome);
-		expect(commands.component).not.toHaveBeenCalled();
+		expect(commands.redirect).not.toHaveBeenCalled();
+		expect(commands.component).toHaveBeenCalledWith("category-page");
 		expect(result).toEqual({
-			type: "redirect",
-			path: ROUTES.welcome,
+			type: "component",
+			tagName: "category-page",
 		});
 	});
 

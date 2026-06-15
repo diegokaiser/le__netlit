@@ -86,7 +86,9 @@ export function initRouter(outlet: HTMLElement) {
 					return commands.redirect(ROUTES.login);
 				}
 
-				return commands.redirect(ROUTES.welcome);
+				await import("../pages/category/category.page");
+
+				return commands.component("category-page");
 			},
 		},
 		{

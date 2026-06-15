@@ -18,6 +18,13 @@ export interface MediaItem {
 	genreIds: readonly number[];
 }
 
+export interface MediaPage {
+	items: readonly MediaItem[];
+	page: number;
+	totalPages: number;
+	totalResults: number;
+}
+
 export interface MediaSection {
 	id: MediaSectionId;
 	title: string;

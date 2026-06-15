@@ -1,5 +1,7 @@
 import type {
 	MediaItem,
+	MediaPage,
+	TmdbListResponse,
 	TmdbMovieResult,
 	TmdbTrendingResult,
 	TmdbTvResult,
@@ -78,3 +80,15 @@ export const mapTmdbTrendingItem = (
 
 	return null;
 };
+
+export function mapTmdbPage<TItem>(
+	response: TmdbListResponse<TItem>,
+	mapItem: (item: TItem) => MediaItem,
+): MediaPage {
+	return {
+		items: response.results.map(mapItem),
+		page: response.page,
+		totalPages: response.total_pages,
+		totalResults: response.total_results,
+	};
+}

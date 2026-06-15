@@ -1,7 +1,13 @@
 import { tmdbFetch } from "./tmdb.client";
-import { mapTmdbMovie, mapTmdbTrendingItem, mapTmdbTv } from "./tmdb.mapper";
+import {
+	mapTmdbMovie,
+	mapTmdbPage,
+	mapTmdbTrendingItem,
+	mapTmdbTv,
+} from "./tmdb.mapper";
 import type {
 	MediaItem,
+	MediaPage,
 	MediaSection,
 	MediaSectionId,
 	TmdbGenreListResponse,
@@ -65,10 +71,7 @@ export class TmdbMediaService {
 			.filter((item): item is MediaItem => item !== null);
 	}
 
-	async getPopularMovies(
-		page = 1,
-		signal?: AbortSignal,
-	): Promise<readonly MediaItem[]> {
+	async getMoviesPage(page = 1, signal?: AbortSignal): Promise<MediaPage> {
 		const response = await tmdbFetch<TmdbListResponse<TmdbMovieResult>>(
 			TMDB_PATHS.popularMovies,
 			{
@@ -80,13 +83,10 @@ export class TmdbMediaService {
 			},
 		);
 
-		return response.results.map(mapTmdbMovie);
+		return mapTmdbPage(response, mapTmdbMovie);
 	}
 
-	async getPopularSeries(
-		page = 1,
-		signal?: AbortSignal,
-	): Promise<readonly MediaItem[]> {
+	async getSeriesPage(page = 1, signal?: AbortSignal): Promise<MediaPage> {
 		const response = await tmdbFetch<TmdbListResponse<TmdbTvResult>>(
 			TMDB_PATHS.popularSeries,
 			{
@@ -98,13 +98,13 @@ export class TmdbMediaService {
 			},
 		);
 
-		return response.results.map(mapTmdbTv);
+		return mapTmdbPage(response, mapTmdbTv);
 	}
 
-	async getDocumentaries(
+	async getDocumentariesPage(
 		page = 1,
 		signal?: AbortSignal,
-	): Promise<readonly MediaItem[]> {
+	): Promise<MediaPage> {
 		const documentaryGenreId = await this.getDocumentaryGenreId(signal);
 
 		const response = await tmdbFetch<TmdbListResponse<TmdbMovieResult>>(
@@ -122,7 +122,34 @@ export class TmdbMediaService {
 			},
 		);
 
-		return response.results.map(mapTmdbMovie);
+		return mapTmdbPage(response, mapTmdbMovie);
+	}
+
+	async getPopularMovies(
+		page = 1,
+		signal?: AbortSignal,
+	): Promise<readonly MediaItem[]> {
+		const response = await this.getMoviesPage(page, signal);
+
+		return response.items;
+	}
+
+	async getPopularSeries(
+		page = 1,
+		signal?: AbortSignal,
+	): Promise<readonly MediaItem[]> {
+		const response = await this.getSeriesPage(page, signal);
+
+		return response.items;
+	}
+
+	async getDocumentaries(
+		page = 1,
+		signal?: AbortSignal,
+	): Promise<readonly MediaItem[]> {
+		const response = await this.getDocumentariesPage(page, signal);
+
+		return response.items;
 	}
 
 	async getMovieDetails(

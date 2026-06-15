@@ -78,6 +78,20 @@ export function initRouter(outlet: HTMLElement) {
 			},
 		},
 		{
+			path: ROUTES.subcategory,
+			action: async (_context, commands) => {
+				const user = await requireAuthenticatedUser();
+
+				if (!user) {
+					return commands.redirect(ROUTES.login);
+				}
+
+				await import("../pages/subcategory/subcategory.page");
+
+				return commands.component("subcategory-page");
+			},
+		},
+		{
 			path: ROUTES.category,
 			action: async (_context, commands) => {
 				const user = await requireAuthenticatedUser();

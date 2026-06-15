@@ -131,6 +131,7 @@ describe("initRouter", () => {
 			ROUTES.createNewPassword,
 			ROUTES.otp,
 			ROUTES.welcome,
+			ROUTES.subcategory,
 			ROUTES.category,
 			ROUTES.createProfile,
 			ROUTES.profiles,

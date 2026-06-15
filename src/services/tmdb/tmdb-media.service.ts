@@ -10,6 +10,7 @@ import type {
 	MediaPage,
 	MediaSection,
 	MediaSectionId,
+	MediaType,
 	TmdbGenreListResponse,
 	TmdbListResponse,
 	TmdbMovieResult,
@@ -26,7 +27,9 @@ const TMDB_PATHS = {
 	popularMovies: "/movie/popular",
 	popularSeries: "/tv/popular",
 	movieGenres: "/genre/movie/list",
+	tvGenres: "/genre/tv/list",
 	discoverMovies: "/discover/movie",
+	discoverSeries: "/discover/tv",
 } as const;
 
 const SECTION_TITLES: Readonly<Record<MediaSectionId, string>> = {
@@ -41,6 +44,13 @@ type SectionRequest = {
 	load: () => Promise<readonly MediaItem[]>;
 };
 
+export type GetMediaByGenreParams = Readonly<{
+	mediaType: MediaType;
+	genreNames: readonly string[];
+	page?: number;
+	signal?: AbortSignal;
+}>;
+
 export class TmdbRequestError extends Error {
 	readonly status?: number;
 
@@ -53,7 +63,10 @@ export class TmdbRequestError extends Error {
 }
 
 export class TmdbMediaService {
-	private documentaryGenreId: number | null = null;
+	private readonly genreCatalogCache = new Map<
+		MediaType,
+		ReadonlyMap<string, number>
+	>();
 
 	async getTrending(signal?: AbortSignal): Promise<readonly MediaItem[]> {
 		const response = await tmdbFetch<TmdbListResponse<TmdbTrendingResult>>(
@@ -101,28 +114,67 @@ export class TmdbMediaService {
 		return mapTmdbPage(response, mapTmdbTv);
 	}
 
-	async getDocumentariesPage(
+	async getByGenre({
+		mediaType,
+		genreNames,
 		page = 1,
-		signal?: AbortSignal,
-	): Promise<MediaPage> {
-		const documentaryGenreId = await this.getDocumentaryGenreId(signal);
+		signal,
+	}: GetMediaByGenreParams): Promise<MediaPage> {
+		const genreIds = await this.resolveGenreIds(mediaType, genreNames, signal);
 
-		const response = await tmdbFetch<TmdbListResponse<TmdbMovieResult>>(
-			TMDB_PATHS.discoverMovies,
+		const firstGenreId = genreIds.at(0);
+
+		const withGenres =
+			genreIds.length === 1 && firstGenreId !== undefined
+				? firstGenreId
+				: genreIds.join(",");
+
+		if (mediaType === "movie") {
+			const response = await tmdbFetch<TmdbListResponse<TmdbMovieResult>>(
+				TMDB_PATHS.discoverMovies,
+				{
+					language: TMDB_LANGUAGE,
+					page,
+					sort_by: "popularity.desc",
+					with_genres: withGenres,
+					include_adult: false,
+					include_video: false,
+				},
+				{
+					signal,
+				},
+			);
+
+			return mapTmdbPage(response, mapTmdbMovie);
+		}
+
+		const response = await tmdbFetch<TmdbListResponse<TmdbTvResult>>(
+			TMDB_PATHS.discoverSeries,
 			{
 				language: TMDB_LANGUAGE,
 				page,
 				sort_by: "popularity.desc",
-				with_genres: documentaryGenreId,
+				with_genres: withGenres,
 				include_adult: false,
-				include_video: false,
 			},
 			{
 				signal,
 			},
 		);
 
-		return mapTmdbPage(response, mapTmdbMovie);
+		return mapTmdbPage(response, mapTmdbTv);
+	}
+
+	async getDocumentariesPage(
+		page = 1,
+		signal?: AbortSignal,
+	): Promise<MediaPage> {
+		return this.getByGenre({
+			mediaType: "movie",
+			genreNames: ["Documentary"],
+			page,
+			signal,
+		});
 	}
 
 	async getPopularMovies(
@@ -261,13 +313,57 @@ export class TmdbMediaService {
 		};
 	}
 
-	private async getDocumentaryGenreId(signal?: AbortSignal): Promise<number> {
-		if (this.documentaryGenreId !== null) {
-			return this.documentaryGenreId;
+	private async resolveGenreIds(
+		mediaType: MediaType,
+		genreNames: readonly string[],
+		signal?: AbortSignal,
+	): Promise<readonly number[]> {
+		const genreCatalog = await this.getGenreCatalog(mediaType, signal);
+
+		const genreIds: number[] = [];
+
+		for (const genreName of genreNames) {
+			const normalizedGenreName = this.normalizeGenreName(genreName);
+
+			if (!normalizedGenreName) {
+				continue;
+			}
+
+			const genreId = genreCatalog.get(normalizedGenreName);
+
+			if (genreId === undefined) {
+				throw new TmdbRequestError(`TMDB no devolvió el género ${genreName}.`);
+			}
+
+			if (!genreIds.includes(genreId)) {
+				genreIds.push(genreId);
+			}
 		}
 
+		if (genreIds.length === 0) {
+			throw new TmdbRequestError(
+				"Es necesario indicar al menos un género válido.",
+			);
+		}
+
+		return genreIds;
+	}
+
+	private async getGenreCatalog(
+		mediaType: MediaType,
+		signal?: AbortSignal,
+	): Promise<ReadonlyMap<string, number>> {
+		const cachedCatalog = this.genreCatalogCache.get(mediaType);
+
+		if (cachedCatalog) {
+			return cachedCatalog;
+		}
+
+		const path =
+			mediaType === "movie" ? TMDB_PATHS.movieGenres : TMDB_PATHS.tvGenres;
+
 		const response = await tmdbFetch<TmdbGenreListResponse>(
-			TMDB_PATHS.movieGenres,
+			path,
 			{
 				language: TMDB_GENRE_LANGUAGE,
 			},
@@ -276,17 +372,25 @@ export class TmdbMediaService {
 			},
 		);
 
-		const documentaryGenre = response.genres.find(
-			(genre) => genre.name.trim().toLocaleLowerCase("en-US") === "documentary",
-		);
+		const genreCatalog = new Map<string, number>();
 
-		if (!documentaryGenre) {
-			throw new TmdbRequestError("TMDB no devolvió el género Documentary.");
+		for (const genre of response.genres) {
+			const normalizedGenreName = this.normalizeGenreName(genre.name);
+
+			if (!normalizedGenreName) {
+				continue;
+			}
+
+			genreCatalog.set(normalizedGenreName, genre.id);
 		}
 
-		this.documentaryGenreId = documentaryGenre.id;
+		this.genreCatalogCache.set(mediaType, genreCatalog);
 
-		return documentaryGenre.id;
+		return genreCatalog;
+	}
+
+	private normalizeGenreName(value: string): string {
+		return value.trim().toLocaleLowerCase("en-US");
 	}
 
 	private selectHero(sections: readonly MediaSection[]): MediaItem | null {

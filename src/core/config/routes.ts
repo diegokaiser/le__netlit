@@ -1,5 +1,6 @@
 import type { MediaType } from "../../services/tmdb/tmdb.types";
 import type { CategorySlug } from "../constants/categories";
+import type { SubcategorySlug } from "../constants/subcategories";
 
 export const ROUTES = {
 	welcomeScreen: "/",
@@ -24,6 +25,13 @@ export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
 
 export function buildCategoryRoute(category: CategorySlug): string {
 	return `/category/${category}`;
+}
+
+export function buildSubcategoryRoute(
+	category: CategorySlug,
+	subcategory: SubcategorySlug,
+): string {
+	return `/category/${category}/${subcategory}`;
 }
 
 export function buildMediaDetailRoute(

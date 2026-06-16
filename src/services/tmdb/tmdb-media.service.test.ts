@@ -319,6 +319,504 @@ describe("TmdbMediaService.getSeriesPage", () => {
 	});
 });
 
+describe("TmdbMediaService.getByGenre", () => {
+	it("resuelve un género de película y devuelve MediaPage normalizado", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		const genreResponse: TmdbGenreListResponse = {
+			genres: [
+				{
+					id: 27,
+					name: "Horror",
+				},
+				{
+					id: 878,
+					name: "Science Fiction",
+				},
+			],
+		};
+
+		const discoverResponse: TmdbListResponse<TmdbMovieResult> = {
+			page: 3,
+			results: [
+				createMovieResult({
+					id: 801,
+					title: "Película de ciencia ficción",
+					genre_ids: [878],
+				}),
+			],
+			total_pages: 7,
+			total_results: 132,
+		};
+
+		mocks.tmdbFetch
+			.mockResolvedValueOnce(genreResponse)
+			.mockResolvedValueOnce(discoverResponse);
+
+		const result = await service.getByGenre({
+			mediaType: "movie",
+			genreNames: ["Science Fiction"],
+			page: 3,
+			signal: abortController.signal,
+		});
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(2);
+
+		expect(mocks.tmdbFetch).toHaveBeenNthCalledWith(
+			1,
+			"/genre/movie/list",
+			{
+				language: "en-US",
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		expect(mocks.tmdbFetch).toHaveBeenNthCalledWith(
+			2,
+			"/discover/movie",
+			{
+				language: "es-ES",
+				page: 3,
+				sort_by: "popularity.desc",
+				with_genres: 878,
+				include_adult: false,
+				include_video: false,
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		expect(result).toEqual({
+			items: [
+				{
+					id: 801,
+					mediaType: "movie",
+					title: "Película de ciencia ficción",
+					overview: "Una historia ambientada en Arrakis.",
+					posterPath: "/dune-poster.jpg",
+					backdropPath: "/dune-backdrop.jpg",
+					voteAverage: 8.2,
+					releaseDate: "2021-10-22",
+					genreIds: [878],
+				},
+			],
+			page: 3,
+			totalPages: 7,
+			totalResults: 132,
+		});
+	});
+
+	it("resuelve un género de serie y consulta únicamente discover/tv", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		const genreResponse: TmdbGenreListResponse = {
+			genres: [
+				{
+					id: 35,
+					name: "Comedy",
+				},
+				{
+					id: 10765,
+					name: "Sci-Fi & Fantasy",
+				},
+			],
+		};
+
+		const discoverResponse: TmdbListResponse<TmdbTvResult> = {
+			page: 2,
+			results: [
+				createTvResult({
+					id: 802,
+					name: "Serie de ciencia ficción",
+					genre_ids: [10765],
+				}),
+			],
+			total_pages: 5,
+			total_results: 86,
+		};
+
+		mocks.tmdbFetch
+			.mockResolvedValueOnce(genreResponse)
+			.mockResolvedValueOnce(discoverResponse);
+
+		const result = await service.getByGenre({
+			mediaType: "tv",
+			genreNames: ["Sci-Fi & Fantasy"],
+			page: 2,
+			signal: abortController.signal,
+		});
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(2);
+
+		expect(mocks.tmdbFetch).toHaveBeenNthCalledWith(
+			1,
+			"/genre/tv/list",
+			{
+				language: "en-US",
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		expect(mocks.tmdbFetch).toHaveBeenNthCalledWith(
+			2,
+			"/discover/tv",
+			{
+				language: "es-ES",
+				page: 2,
+				sort_by: "popularity.desc",
+				with_genres: 10765,
+				include_adult: false,
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		expect(mocks.tmdbFetch).not.toHaveBeenCalledWith(
+			"/discover/movie",
+			expect.anything(),
+			expect.anything(),
+		);
+
+		expect(result).toEqual({
+			items: [
+				{
+					id: 802,
+					mediaType: "tv",
+					title: "Serie de ciencia ficción",
+					overview: "Una serie sobre viajes en el tiempo.",
+					posterPath: "/dark-poster.jpg",
+					backdropPath: "/dark-backdrop.jpg",
+					voteAverage: 8.7,
+					releaseDate: "2017-12-01",
+					genreIds: [10765],
+				},
+			],
+			page: 2,
+			totalPages: 5,
+			totalResults: 86,
+		});
+	});
+
+	it("serializa varios géneros mediante coma y elimina nombres e IDs duplicados", async () => {
+		const service = new TmdbMediaService();
+
+		mocks.tmdbFetch
+			.mockResolvedValueOnce({
+				genres: [
+					{
+						id: 35,
+						name: "Comedy",
+					},
+					{
+						id: 10749,
+						name: "Romance",
+					},
+					{
+						id: 35,
+						name: "Comedy Alias",
+					},
+				],
+			} satisfies TmdbGenreListResponse)
+			.mockResolvedValueOnce({
+				page: 1,
+				results: [],
+				total_pages: 1,
+				total_results: 0,
+			} satisfies TmdbListResponse<TmdbMovieResult>);
+
+		await service.getByGenre({
+			mediaType: "movie",
+			genreNames: [" Comedy ", "comedy", "Romance", "Comedy Alias"],
+		});
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(2);
+
+		expect(mocks.tmdbFetch).toHaveBeenNthCalledWith(
+			2,
+			"/discover/movie",
+			{
+				language: "es-ES",
+				page: 1,
+				sort_by: "popularity.desc",
+				with_genres: "35,10749",
+				include_adult: false,
+				include_video: false,
+			},
+			{
+				signal: undefined,
+			},
+		);
+	});
+
+	it("lanza TmdbRequestError cuando no se indica ningún género válido", async () => {
+		const service = new TmdbMediaService();
+
+		mocks.tmdbFetch.mockResolvedValueOnce({
+			genres: [
+				{
+					id: 35,
+					name: "Comedy",
+				},
+			],
+		} satisfies TmdbGenreListResponse);
+
+		await expect(
+			service.getByGenre({
+				mediaType: "movie",
+				genreNames: ["", "   "],
+			}),
+		).rejects.toMatchObject({
+			name: "TmdbRequestError",
+			message: "Es necesario indicar al menos un género válido.",
+			status: undefined,
+		});
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/genre/movie/list",
+			{
+				language: "en-US",
+			},
+			{
+				signal: undefined,
+			},
+		);
+
+		const discoverRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/discover/movie" || path === "/discover/tv",
+		);
+
+		expect(discoverRequests).toHaveLength(0);
+	});
+
+	it("lanza TmdbRequestError y no ejecuta discover cuando falta el género solicitado", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		mocks.tmdbFetch.mockResolvedValueOnce({
+			genres: [
+				{
+					id: 18,
+					name: "Drama",
+				},
+				{
+					id: 35,
+					name: "Comedy",
+				},
+			],
+		} satisfies TmdbGenreListResponse);
+
+		await expect(
+			service.getByGenre({
+				mediaType: "tv",
+				genreNames: ["Sci-Fi & Fantasy"],
+				signal: abortController.signal,
+			}),
+		).rejects.toMatchObject({
+			name: "TmdbRequestError",
+			message: "TMDB no devolvió el género Sci-Fi & Fantasy.",
+			status: undefined,
+		});
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/genre/tv/list",
+			{
+				language: "en-US",
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+
+		const discoverRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/discover/movie" || path === "/discover/tv",
+		);
+
+		expect(discoverRequests).toHaveLength(0);
+	});
+
+	it("mantiene y reutiliza catálogos separados para movie y tv", async () => {
+		const service = new TmdbMediaService();
+
+		mocks.tmdbFetch
+			.mockResolvedValueOnce({
+				genres: [
+					{
+						id: 878,
+						name: "Science Fiction",
+					},
+				],
+			} satisfies TmdbGenreListResponse)
+			.mockResolvedValueOnce({
+				page: 1,
+				results: [],
+				total_pages: 3,
+				total_results: 0,
+			} satisfies TmdbListResponse<TmdbMovieResult>)
+			.mockResolvedValueOnce({
+				genres: [
+					{
+						id: 10765,
+						name: "Sci-Fi & Fantasy",
+					},
+				],
+			} satisfies TmdbGenreListResponse)
+			.mockResolvedValueOnce({
+				page: 1,
+				results: [],
+				total_pages: 4,
+				total_results: 0,
+			} satisfies TmdbListResponse<TmdbTvResult>)
+			.mockResolvedValueOnce({
+				page: 2,
+				results: [],
+				total_pages: 3,
+				total_results: 0,
+			} satisfies TmdbListResponse<TmdbMovieResult>)
+			.mockResolvedValueOnce({
+				page: 2,
+				results: [],
+				total_pages: 4,
+				total_results: 0,
+			} satisfies TmdbListResponse<TmdbTvResult>);
+
+		await service.getByGenre({
+			mediaType: "movie",
+			genreNames: ["Science Fiction"],
+			page: 1,
+		});
+
+		await service.getByGenre({
+			mediaType: "tv",
+			genreNames: ["Sci-Fi & Fantasy"],
+			page: 1,
+		});
+
+		await service.getByGenre({
+			mediaType: "movie",
+			genreNames: ["Science Fiction"],
+			page: 2,
+		});
+
+		await service.getByGenre({
+			mediaType: "tv",
+			genreNames: ["Sci-Fi & Fantasy"],
+			page: 2,
+		});
+
+		const movieGenreRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/genre/movie/list",
+		);
+
+		const tvGenreRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/genre/tv/list",
+		);
+
+		const movieDiscoverRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/discover/movie",
+		);
+
+		const tvDiscoverRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/discover/tv",
+		);
+
+		expect(movieGenreRequests).toHaveLength(1);
+		expect(tvGenreRequests).toHaveLength(1);
+
+		expect(movieDiscoverRequests).toHaveLength(2);
+		expect(tvDiscoverRequests).toHaveLength(2);
+
+		expect(movieDiscoverRequests[0]?.[1]).toMatchObject({
+			page: 1,
+			with_genres: 878,
+		});
+
+		expect(movieDiscoverRequests[1]?.[1]).toMatchObject({
+			page: 2,
+			with_genres: 878,
+		});
+
+		expect(tvDiscoverRequests[0]?.[1]).toMatchObject({
+			page: 1,
+			with_genres: 10765,
+		});
+
+		expect(tvDiscoverRequests[1]?.[1]).toMatchObject({
+			page: 2,
+			with_genres: 10765,
+		});
+	});
+
+	it("no cachea una respuesta fallida del catálogo de géneros", async () => {
+		const service = new TmdbMediaService();
+		const catalogError = new TypeError(
+			"No se pudo cargar el catálogo de géneros",
+		);
+
+		mocks.tmdbFetch
+			.mockRejectedValueOnce(catalogError)
+			.mockResolvedValueOnce({
+				genres: [
+					{
+						id: 35,
+						name: "Comedy",
+					},
+				],
+			} satisfies TmdbGenreListResponse)
+			.mockResolvedValueOnce({
+				page: 1,
+				results: [
+					createMovieResult({
+						id: 803,
+						title: "Comedia recuperada",
+						genre_ids: [35],
+					}),
+				],
+				total_pages: 1,
+				total_results: 1,
+			} satisfies TmdbListResponse<TmdbMovieResult>);
+
+		await expect(
+			service.getByGenre({
+				mediaType: "movie",
+				genreNames: ["Comedy"],
+			}),
+		).rejects.toBe(catalogError);
+
+		const recoveredResult = await service.getByGenre({
+			mediaType: "movie",
+			genreNames: ["Comedy"],
+		});
+
+		const genreRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/genre/movie/list",
+		);
+
+		const discoverRequests = mocks.tmdbFetch.mock.calls.filter(
+			([path]) => path === "/discover/movie",
+		);
+
+		expect(genreRequests).toHaveLength(2);
+		expect(discoverRequests).toHaveLength(1);
+
+		expect(recoveredResult.items).toHaveLength(1);
+		expect(recoveredResult.items[0]).toMatchObject({
+			id: 803,
+			mediaType: "movie",
+			title: "Comedia recuperada",
+		});
+	});
+});
+
 describe("TmdbMediaService.getDocumentariesPage", () => {
 	it("obtiene Documentary y consulta discover/movie con los filtros esperados", async () => {
 		const service = new TmdbMediaService();

@@ -4,11 +4,18 @@ const mocks = vi.hoisted(() => ({
 	requireAuthenticatedUser: vi.fn(),
 	routerConstructor: vi.fn(),
 	setRoutes: vi.fn(),
+	loadSubcategoryPage: vi.fn(),
 }));
 
 vi.mock("../router/auth.guard", () => ({
 	requireAuthenticatedUser: mocks.requireAuthenticatedUser,
 }));
+
+vi.mock("../pages/subcategory/subcategory.page", () => {
+	mocks.loadSubcategoryPage();
+
+	return {};
+});
 
 vi.mock("@vaadin/router", () => ({
 	Router: class RouterMock {
@@ -96,6 +103,7 @@ function resetMocks(): void {
 	mocks.requireAuthenticatedUser.mockReset();
 	mocks.routerConstructor.mockReset();
 	mocks.setRoutes.mockReset();
+	mocks.loadSubcategoryPage.mockReset();
 }
 
 describe("initRouter", () => {
@@ -138,6 +146,22 @@ describe("initRouter", () => {
 			ROUTES.profile,
 			"(.*)",
 		]);
+	});
+
+	it("registra la ruta de subcategoría antes de la ruta de categoría", () => {
+		const { routes } = initializeRouter();
+
+		const subcategoryRouteIndex = routes.findIndex(
+			(route) => route.path === ROUTES.subcategory,
+		);
+
+		const categoryRouteIndex = routes.findIndex(
+			(route) => route.path === ROUTES.category,
+		);
+
+		expect(subcategoryRouteIndex).toBeGreaterThanOrEqual(0);
+		expect(categoryRouteIndex).toBeGreaterThanOrEqual(0);
+		expect(subcategoryRouteIndex).toBeLessThan(categoryRouteIndex);
 	});
 
 	it("mantiene configuradas las rutas públicas existentes", () => {
@@ -221,6 +245,94 @@ describe("initRouter", () => {
 			type: "component",
 			tagName: "welcome-page",
 		});
+	});
+
+	it("carga la página de subcategoría cuando existe sesión", async () => {
+		const { routes } = initializeRouter();
+		const commands = createCommands();
+
+		mocks.requireAuthenticatedUser.mockResolvedValue({
+			$id: "user-1",
+		});
+
+		const route = getRequiredRoute(routes, ROUTES.subcategory);
+
+		const result = await getRequiredAction(route)(
+			{
+				params: {
+					category: "movies",
+					subcategory: "terror",
+				},
+			},
+			commands,
+		);
+
+		expect(mocks.requireAuthenticatedUser).toHaveBeenCalledTimes(1);
+		expect(mocks.loadSubcategoryPage).toHaveBeenCalledTimes(1);
+		expect(commands.redirect).not.toHaveBeenCalled();
+		expect(commands.component).toHaveBeenCalledTimes(1);
+		expect(commands.component).toHaveBeenCalledWith("subcategory-page");
+
+		expect(result).toEqual({
+			type: "component",
+			tagName: "subcategory-page",
+		});
+	});
+
+	it("redirige las subcategorías a login cuando no existe sesión", async () => {
+		const { routes } = initializeRouter();
+		const commands = createCommands();
+
+		mocks.requireAuthenticatedUser.mockResolvedValue(null);
+
+		const route = getRequiredRoute(routes, ROUTES.subcategory);
+
+		const result = await getRequiredAction(route)(
+			{
+				params: {
+					category: "movies",
+					subcategory: "terror",
+				},
+			},
+			commands,
+		);
+
+		expect(mocks.requireAuthenticatedUser).toHaveBeenCalledTimes(1);
+		expect(commands.redirect).toHaveBeenCalledTimes(1);
+		expect(commands.redirect).toHaveBeenCalledWith(ROUTES.login);
+		expect(commands.component).not.toHaveBeenCalled();
+		expect(mocks.loadSubcategoryPage).not.toHaveBeenCalled();
+
+		expect(result).toEqual({
+			type: "redirect",
+			path: ROUTES.login,
+		});
+	});
+
+	it("propaga errores inesperados del guard en la ruta de subcategoría", async () => {
+		const { routes } = initializeRouter();
+		const commands = createCommands();
+		const error = new Error("Authentication service unavailable");
+
+		mocks.requireAuthenticatedUser.mockRejectedValue(error);
+
+		const route = getRequiredRoute(routes, ROUTES.subcategory);
+
+		await expect(
+			getRequiredAction(route)(
+				{
+					params: {
+						category: "series",
+						subcategory: "sci-fi",
+					},
+				},
+				commands,
+			),
+		).rejects.toBe(error);
+
+		expect(commands.redirect).not.toHaveBeenCalled();
+		expect(commands.component).not.toHaveBeenCalled();
+		expect(mocks.loadSubcategoryPage).not.toHaveBeenCalled();
 	});
 
 	it("carga la página de categoría cuando existe sesión", async () => {

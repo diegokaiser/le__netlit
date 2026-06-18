@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
 	routerConstructor: vi.fn(),
 	setRoutes: vi.fn(),
 	loadSubcategoryPage: vi.fn(),
+	loadMediaDetailPage: vi.fn(),
 }));
 
 vi.mock("../router/auth.guard", () => ({
@@ -13,6 +14,12 @@ vi.mock("../router/auth.guard", () => ({
 
 vi.mock("../pages/subcategory/subcategory.page", () => {
 	mocks.loadSubcategoryPage();
+
+	return {};
+});
+
+vi.mock("../pages/media-detail/media-detail.page", () => {
+	mocks.loadMediaDetailPage();
 
 	return {};
 });
@@ -104,6 +111,7 @@ function resetMocks(): void {
 	mocks.routerConstructor.mockReset();
 	mocks.setRoutes.mockReset();
 	mocks.loadSubcategoryPage.mockReset();
+	mocks.loadMediaDetailPage.mockReset();
 }
 
 describe("initRouter", () => {
@@ -163,6 +171,139 @@ describe("initRouter", () => {
 		expect(subcategoryRouteIndex).toBeGreaterThanOrEqual(0);
 		expect(categoryRouteIndex).toBeGreaterThanOrEqual(0);
 		expect(subcategoryRouteIndex).toBeLessThan(categoryRouteIndex);
+	});
+
+	it("registra Media Detail con el patrón y componente esperados", () => {
+		const { routes } = initializeRouter();
+
+		const mediaDetailRoute = getRequiredRoute(routes, ROUTES.mediaDetail);
+
+		expect(mediaDetailRoute).toMatchObject({
+			path: "/media/:mediaType/:mediaId",
+			component: "app-media-detail-page",
+		});
+
+		expect(mediaDetailRoute.action).toBeDefined();
+	});
+
+	it("registra Media Detail antes del fallback", () => {
+		const { routes } = initializeRouter();
+
+		const mediaDetailRouteIndex = routes.findIndex(
+			(route) => route.path === ROUTES.mediaDetail,
+		);
+
+		const fallbackRouteIndex = routes.findIndex(
+			(route) => route.path === "(.*)",
+		);
+
+		expect(mediaDetailRouteIndex).toBeGreaterThanOrEqual(0);
+		expect(fallbackRouteIndex).toBeGreaterThanOrEqual(0);
+		expect(mediaDetailRouteIndex).toBeLessThan(fallbackRouteIndex);
+	});
+
+	it("no registra todavía la ruta funcional de temporadas", () => {
+		const { routes } = initializeRouter();
+
+		expect(routes.some((route) => route.path === ROUTES.seasonDetail)).toBe(
+			false,
+		);
+	});
+
+	it("redirige Media Detail a login cuando no existe sesión", async () => {
+		const { routes } = initializeRouter();
+		const commands = createCommands();
+
+		mocks.requireAuthenticatedUser.mockResolvedValue(null);
+
+		const route = getRequiredRoute(routes, ROUTES.mediaDetail);
+
+		const result = await getRequiredAction(route)(
+			{
+				params: {
+					mediaType: "movie",
+					mediaId: "101",
+				},
+			},
+			commands,
+		);
+
+		expect(mocks.requireAuthenticatedUser).toHaveBeenCalledTimes(1);
+
+		expect(commands.redirect).toHaveBeenCalledTimes(1);
+		expect(commands.redirect).toHaveBeenCalledWith(ROUTES.login);
+
+		expect(commands.component).not.toHaveBeenCalled();
+		expect(mocks.loadMediaDetailPage).not.toHaveBeenCalled();
+
+		expect(result).toEqual({
+			type: "redirect",
+			path: ROUTES.login,
+		});
+	});
+
+	it("carga Media Detail de forma lazy cuando existe sesión", async () => {
+		const { routes } = initializeRouter();
+		const commands = createCommands();
+
+		mocks.requireAuthenticatedUser.mockResolvedValue({
+			$id: "user-1",
+		});
+
+		const route = getRequiredRoute(routes, ROUTES.mediaDetail);
+
+		expect(mocks.loadMediaDetailPage).not.toHaveBeenCalled();
+
+		const result = await getRequiredAction(route)(
+			{
+				params: {
+					mediaType: "tv",
+					mediaId: "202",
+				},
+			},
+			commands,
+		);
+
+		expect(mocks.requireAuthenticatedUser).toHaveBeenCalledTimes(1);
+
+		expect(mocks.loadMediaDetailPage).toHaveBeenCalledTimes(1);
+
+		expect(commands.redirect).not.toHaveBeenCalled();
+
+		expect(commands.component).toHaveBeenCalledTimes(1);
+		expect(commands.component).toHaveBeenCalledWith("app-media-detail-page");
+
+		expect(result).toEqual({
+			type: "component",
+			tagName: "app-media-detail-page",
+		});
+	});
+
+	it("no carga Media Detail cuando el guard falla inesperadamente", async () => {
+		const { routes } = initializeRouter();
+		const commands = createCommands();
+
+		const error = new Error("Authentication service unavailable");
+
+		mocks.requireAuthenticatedUser.mockRejectedValue(error);
+
+		const route = getRequiredRoute(routes, ROUTES.mediaDetail);
+
+		await expect(
+			getRequiredAction(route)(
+				{
+					params: {
+						mediaType: "movie",
+						mediaId: "101",
+					},
+				},
+				commands,
+			),
+		).rejects.toBe(error);
+
+		expect(mocks.loadMediaDetailPage).not.toHaveBeenCalled();
+		expect(commands.redirect).not.toHaveBeenCalled();
+		expect(commands.component).not.toHaveBeenCalled();
 	});
 
 	it("mantiene configuradas las rutas públicas existentes", () => {

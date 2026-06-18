@@ -8,6 +8,7 @@ vi.mock("./tmdb.client", () => ({
 	tmdbFetch: mocks.tmdbFetch,
 }));
 
+import { TmdbMediaNotFoundError } from "./tmdb-media.errors";
 import { TmdbMediaService, TmdbRequestError } from "./tmdb-media.service";
 import type {
 	MediaItem,
@@ -1273,40 +1274,69 @@ describe("TmdbMediaService.getDocumentaries", () => {
 });
 
 describe("TmdbMediaService detail requests", () => {
-	it("consulta y normaliza el detalle de una película", async () => {
+	it("getMediaDetails consulta y normaliza una película", async () => {
 		const service = new TmdbMediaService();
-
-		const response = {
-			id: 101,
-			title: "Detalle de película",
-		};
-
 		const abortController = new AbortController();
 
-		mocks.tmdbFetch.mockResolvedValue(response);
+		mocks.tmdbFetch.mockResolvedValue({
+			id: 101,
+			title: "Detalle de película",
+			original_title: "Original movie title",
+			overview: "Descripción de la película.",
+			runtime: 125,
+			genres: [
+				{
+					id: 18,
+					name: "Drama",
+				},
+			],
+			credits: {
+				cast: [
+					{
+						id: 501,
+						name: "Actor principal",
+						character: "Personaje principal",
+						profile_path: "/actor.jpg",
+						order: 0,
+					},
+				],
+			},
+		});
 
 		await expect(
-			service.getMovieDetails(101, abortController.signal),
+			service.getMediaDetails("movie", 101, abortController.signal),
 		).resolves.toEqual({
 			id: 101,
 			mediaType: "movie",
 			title: "Detalle de película",
-			originalTitle: null,
-			overview: "",
+			originalTitle: "Original movie title",
+			overview: "Descripción de la película.",
 			posterPath: null,
 			backdropPath: null,
-			genres: [],
+			genres: [
+				{
+					id: 18,
+					name: "Drama",
+				},
+			],
 			voteAverage: 0,
 			voteCount: 0,
 			releaseDate: null,
 			status: null,
 			tagline: null,
 			originalLanguage: null,
-			runtime: null,
+			runtime: 125,
 			numberOfSeasons: null,
 			numberOfEpisodes: null,
 			seasons: [],
-			cast: [],
+			cast: [
+				{
+					id: 501,
+					name: "Actor principal",
+					character: "Personaje principal",
+					profilePath: "/actor.jpg",
+				},
+			],
 		});
 
 		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
@@ -1322,22 +1352,47 @@ describe("TmdbMediaService detail requests", () => {
 		);
 	});
 
-	it("consulta y normaliza el detalle de una serie", async () => {
+	it("getMediaDetails consulta y normaliza una serie", async () => {
 		const service = new TmdbMediaService();
+		const abortController = new AbortController();
 
-		const response = {
+		mocks.tmdbFetch.mockResolvedValue({
 			id: 202,
 			name: "Detalle de serie",
-		};
+			original_name: "Original series name",
+			overview: "Descripción de la serie.",
+			number_of_seasons: 2,
+			number_of_episodes: 16,
+			seasons: [
+				{
+					id: 302,
+					season_number: 2,
+					name: "Temporada 2",
+					episode_count: 8,
+				},
+				{
+					id: 300,
+					season_number: 0,
+					name: "Especiales",
+					episode_count: 3,
+				},
+				{
+					id: 301,
+					season_number: 1,
+					name: "Temporada 1",
+					episode_count: 8,
+				},
+			],
+		});
 
-		mocks.tmdbFetch.mockResolvedValue(response);
-
-		await expect(service.getSeriesDetails(202)).resolves.toEqual({
+		await expect(
+			service.getMediaDetails("tv", 202, abortController.signal),
+		).resolves.toEqual({
 			id: 202,
 			mediaType: "tv",
 			title: "Detalle de serie",
-			originalTitle: null,
-			overview: "",
+			originalTitle: "Original series name",
+			overview: "Descripción de la serie.",
 			posterPath: null,
 			backdropPath: null,
 			genres: [],
@@ -1348,9 +1403,28 @@ describe("TmdbMediaService detail requests", () => {
 			tagline: null,
 			originalLanguage: null,
 			runtime: null,
-			numberOfSeasons: null,
-			numberOfEpisodes: null,
-			seasons: [],
+			numberOfSeasons: 2,
+			numberOfEpisodes: 16,
+			seasons: [
+				{
+					id: 301,
+					seasonNumber: 1,
+					name: "Temporada 1",
+					overview: "",
+					posterPath: null,
+					episodeCount: 8,
+					airDate: null,
+				},
+				{
+					id: 302,
+					seasonNumber: 2,
+					name: "Temporada 2",
+					overview: "",
+					posterPath: null,
+					episodeCount: 8,
+					airDate: null,
+				},
+			],
 			cast: [],
 		});
 
@@ -1362,13 +1436,363 @@ describe("TmdbMediaService detail requests", () => {
 				append_to_response: "credits",
 			},
 			{
+				signal: abortController.signal,
+			},
+		);
+	});
+
+	it("no solicita vídeos, recomendaciones, similares ni episodios al consultar una película", async () => {
+		const service = new TmdbMediaService();
+
+		mocks.tmdbFetch.mockResolvedValue({
+			id: 101,
+			title: "Película sin recursos adicionales",
+		});
+
+		await service.getMediaDetails("movie", 101);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
+
+		const call = mocks.tmdbFetch.mock.calls[0];
+
+		expect(call).toBeDefined();
+
+		const [path, params] = call ?? [];
+
+		expect(path).toBe("/movie/101");
+		expect(params).toEqual({
+			language: "es-ES",
+			append_to_response: "credits",
+		});
+
+		expect(params).not.toHaveProperty("videos");
+		expect(params).not.toHaveProperty("recommendations");
+		expect(params).not.toHaveProperty("similar");
+		expect(params).not.toHaveProperty("episodes");
+	});
+
+	it("no solicita vídeos, recomendaciones, similares ni temporadas individuales al consultar una serie", async () => {
+		const service = new TmdbMediaService();
+
+		mocks.tmdbFetch.mockResolvedValue({
+			id: 202,
+			name: "Serie sin recursos adicionales",
+		});
+
+		await service.getMediaDetails("tv", 202);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
+
+		const call = mocks.tmdbFetch.mock.calls[0];
+
+		expect(call).toBeDefined();
+
+		const [path, params] = call ?? [];
+
+		expect(path).toBe("/tv/202");
+		expect(params).toEqual({
+			language: "es-ES",
+			append_to_response: "credits",
+		});
+
+		expect(params).not.toHaveProperty("videos");
+		expect(params).not.toHaveProperty("recommendations");
+		expect(params).not.toHaveProperty("similar");
+		expect(params).not.toHaveProperty("episodes");
+
+		const seasonRequests = mocks.tmdbFetch.mock.calls.filter(([requestPath]) =>
+			String(requestPath).includes("/season/"),
+		);
+
+		expect(seasonRequests).toHaveLength(0);
+	});
+
+	it("getMovieDetails reenvía exactamente el mismo AbortSignal", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		mocks.tmdbFetch.mockResolvedValue({
+			id: 101,
+			title: "Detalle de película",
+		});
+
+		await service.getMovieDetails(101, abortController.signal);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/movie/101",
+			{
+				language: "es-ES",
+				append_to_response: "credits",
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+	});
+
+	it("getSeriesDetails reenvía exactamente el mismo AbortSignal", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		mocks.tmdbFetch.mockResolvedValue({
+			id: 202,
+			name: "Detalle de serie",
+		});
+
+		await service.getSeriesDetails(202, abortController.signal);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/tv/202",
+			{
+				language: "es-ES",
+				append_to_response: "credits",
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+	});
+
+	it.each([
+		0,
+		-1,
+		1.5,
+		Number.NaN,
+		Number.POSITIVE_INFINITY,
+		Number.NEGATIVE_INFINITY,
+		Number.MAX_SAFE_INTEGER + 1,
+	])("getMediaDetails rechaza el mediaId inválido %s", async (mediaId) => {
+		const service = new TmdbMediaService();
+
+		await expect(
+			service.getMediaDetails("movie", mediaId),
+		).rejects.toMatchObject({
+			name: "TmdbRequestError",
+			message: "mediaId debe ser un entero positivo válido.",
+		});
+
+		expect(mocks.tmdbFetch).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		0,
+		-1,
+		1.5,
+		Number.NaN,
+		Number.POSITIVE_INFINITY,
+		Number.NEGATIVE_INFINITY,
+		Number.MAX_SAFE_INTEGER + 1,
+	])("getMovieDetails rechaza el movieId inválido %s", async (movieId) => {
+		const service = new TmdbMediaService();
+
+		await expect(service.getMovieDetails(movieId)).rejects.toMatchObject({
+			name: "TmdbRequestError",
+			message: "movieId debe ser un entero positivo válido.",
+		});
+
+		expect(mocks.tmdbFetch).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		0,
+		-1,
+		1.5,
+		Number.NaN,
+		Number.POSITIVE_INFINITY,
+		Number.NEGATIVE_INFINITY,
+		Number.MAX_SAFE_INTEGER + 1,
+	])("getSeriesDetails rechaza el seriesId inválido %s", async (seriesId) => {
+		const service = new TmdbMediaService();
+
+		await expect(service.getSeriesDetails(seriesId)).rejects.toMatchObject({
+			name: "TmdbRequestError",
+			message: "seriesId debe ser un entero positivo válido.",
+		});
+
+		expect(mocks.tmdbFetch).not.toHaveBeenCalled();
+	});
+
+	it("acepta Number.MAX_SAFE_INTEGER como mediaId", async () => {
+		const service = new TmdbMediaService();
+		const mediaId = Number.MAX_SAFE_INTEGER;
+
+		mocks.tmdbFetch.mockResolvedValue({
+			id: mediaId,
+			title: "Película con identificador máximo",
+		});
+
+		await expect(
+			service.getMediaDetails("movie", mediaId),
+		).resolves.toMatchObject({
+			id: mediaId,
+			mediaType: "movie",
+			title: "Película con identificador máximo",
+		});
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			`/movie/${Number.MAX_SAFE_INTEGER}`,
+			{
+				language: "es-ES",
+				append_to_response: "credits",
+			},
+			{
 				signal: undefined,
 			},
 		);
 	});
 
-	it("consulta una temporada de una serie", async () => {
+	it("rechaza un mediaType técnico no soportado sin llamar a TMDB", async () => {
 		const service = new TmdbMediaService();
+
+		await expect(
+			service.getMediaDetails("documentary" as never, 101),
+		).rejects.toMatchObject({
+			name: "TmdbRequestError",
+			message: "El tipo de contenido documentary no es válido.",
+		});
+
+		expect(mocks.tmdbFetch).not.toHaveBeenCalled();
+	});
+
+	it("transforma un 404 de película en TmdbMediaNotFoundError", async () => {
+		const service = new TmdbMediaService();
+
+		const httpError = Object.assign(new Error("Not found"), {
+			status: 404,
+		});
+
+		mocks.tmdbFetch.mockRejectedValue(httpError);
+
+		let capturedError: unknown;
+
+		try {
+			await service.getMovieDetails(101);
+		} catch (error: unknown) {
+			capturedError = error;
+		}
+
+		expect(capturedError).toBeInstanceOf(TmdbMediaNotFoundError);
+		expect(capturedError).toMatchObject({
+			name: "TmdbMediaNotFoundError",
+			message: "The requested media resource was not found.",
+			mediaType: "movie",
+			mediaId: 101,
+		});
+	});
+
+	it("transforma un 404 de serie en TmdbMediaNotFoundError", async () => {
+		const service = new TmdbMediaService();
+
+		const httpError = Object.assign(new Error("Not found"), {
+			status: 404,
+		});
+
+		mocks.tmdbFetch.mockRejectedValue(httpError);
+
+		let capturedError: unknown;
+
+		try {
+			await service.getSeriesDetails(202);
+		} catch (error: unknown) {
+			capturedError = error;
+		}
+
+		expect(capturedError).toBeInstanceOf(TmdbMediaNotFoundError);
+		expect(capturedError).toMatchObject({
+			name: "TmdbMediaNotFoundError",
+			message: "The requested media resource was not found.",
+			mediaType: "tv",
+			mediaId: 202,
+		});
+	});
+
+	it("no transforma en not-found un error cuyo status no es numérico", async () => {
+		const service = new TmdbMediaService();
+
+		const malformedHttpError = Object.assign(new Error("Malformed status"), {
+			status: "404",
+		});
+
+		mocks.tmdbFetch.mockRejectedValue(malformedHttpError);
+
+		await expect(service.getMovieDetails(101)).rejects.toBe(malformedHttpError);
+	});
+
+	it("propaga sin envolver los errores generales de película", async () => {
+		const service = new TmdbMediaService();
+		const networkError = new TypeError("Failed to fetch");
+
+		mocks.tmdbFetch.mockRejectedValue(networkError);
+
+		await expect(service.getMovieDetails(101)).rejects.toBe(networkError);
+	});
+
+	it("propaga sin envolver los errores generales de serie", async () => {
+		const service = new TmdbMediaService();
+		const networkError = new TypeError("Failed to fetch");
+
+		mocks.tmdbFetch.mockRejectedValue(networkError);
+
+		await expect(service.getSeriesDetails(202)).rejects.toBe(networkError);
+	});
+
+	it("propaga el mismo AbortError al consultar una película", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		const abortError = new DOMException(
+			"The operation was aborted.",
+			"AbortError",
+		);
+
+		mocks.tmdbFetch.mockRejectedValue(abortError);
+
+		await expect(
+			service.getMediaDetails("movie", 101, abortController.signal),
+		).rejects.toBe(abortError);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/movie/101",
+			{
+				language: "es-ES",
+				append_to_response: "credits",
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+	});
+
+	it("propaga el mismo AbortError al consultar una serie", async () => {
+		const service = new TmdbMediaService();
+		const abortController = new AbortController();
+
+		const abortError = new DOMException(
+			"The operation was aborted.",
+			"AbortError",
+		);
+
+		mocks.tmdbFetch.mockRejectedValue(abortError);
+
+		await expect(
+			service.getMediaDetails("tv", 202, abortController.signal),
+		).rejects.toBe(abortError);
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/tv/202",
+			{
+				language: "es-ES",
+				append_to_response: "credits",
+			},
+			{
+				signal: abortController.signal,
+			},
+		);
+	});
+
+	it("consulta una temporada de una serie mediante el método existente", async () => {
+		const service = new TmdbMediaService();
+
 		const response = {
 			id: 303,
 			season_number: 2,
@@ -1378,6 +1802,7 @@ describe("TmdbMediaService detail requests", () => {
 
 		await expect(service.getSeriesSeason(202, 2)).resolves.toEqual(response);
 
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
 		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
 			"/tv/202/season/2",
 			{

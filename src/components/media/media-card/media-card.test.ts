@@ -91,6 +91,36 @@ describe("MediaCard", () => {
 		expect(element.shadowRoot?.querySelector("a.card")).not.toBeNull();
 	});
 
+	it("renderiza un único enlace semántico navegable por teclado", async () => {
+		const media = createMedia({
+			id: 101,
+			mediaType: "movie",
+			title: "Dune",
+		});
+
+		const element = await renderMediaCard(media);
+		const shadowRoot = getShadowRoot(element);
+
+		const links = shadowRoot.querySelectorAll<HTMLAnchorElement>("a.card");
+
+		expect(links).toHaveLength(1);
+
+		const link = links[0];
+
+		expect(link).toBeDefined();
+		expect(link?.tagName).toBe("A");
+		expect(link?.getAttribute("href")).toBe("/media/movie/101");
+		expect(link?.getAttribute("role")).toBeNull();
+		expect(link?.tabIndex).toBe(0);
+
+		expect(shadowRoot.querySelector("button")).toBeNull();
+		expect(shadowRoot.querySelector('[role="button"]')).toBeNull();
+
+		link?.focus();
+
+		expect(shadowRoot.activeElement).toBe(link);
+	});
+
 	it("no renderiza contenido cuando no recibe media", async () => {
 		const element = await renderMediaCard();
 		const shadowRoot = getShadowRoot(element);

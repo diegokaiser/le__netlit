@@ -1,3 +1,12 @@
+import {
+	mapTmdbMovieDetail,
+	mapTmdbSeriesDetail,
+} from "./mappers/map-tmdb-media-detail";
+import type {
+	TmdbMovieDetailsResponse,
+	TmdbSeriesDetailsResponse,
+} from "./tmdb-detail-api.types";
+import { TmdbMediaNotFoundError } from "./tmdb-media.errors";
 import { tmdbFetch } from "./tmdb.client";
 import {
 	mapTmdbMovie,
@@ -6,6 +15,7 @@ import {
 	mapTmdbTv,
 } from "./tmdb.mapper";
 import type {
+	MediaDetail,
 	MediaItem,
 	MediaPage,
 	MediaSection,
@@ -204,36 +214,72 @@ export class TmdbMediaService {
 		return response.items;
 	}
 
+	async getMediaDetails(
+		mediaType: MediaType,
+		mediaId: number,
+		signal?: AbortSignal,
+	): Promise<MediaDetail> {
+		this.assertPositiveInteger(mediaId, "mediaId");
+
+		if (mediaType === "movie") {
+			return this.getMovieDetails(mediaId, signal);
+		}
+
+		if (mediaType === "tv") {
+			return this.getSeriesDetails(mediaId, signal);
+		}
+
+		throw new TmdbRequestError(
+			`El tipo de contenido ${String(mediaType)} no es válido.`,
+		);
+	}
+
 	async getMovieDetails(
 		movieId: number,
 		signal?: AbortSignal,
-	): Promise<Record<string, unknown>> {
-		return tmdbFetch<Record<string, unknown>>(
-			`/movie/${movieId}`,
-			{
-				language: TMDB_LANGUAGE,
-				append_to_response: "recommendations,credits,videos",
-			},
-			{
-				signal,
-			},
-		);
+	): Promise<MediaDetail> {
+		this.assertPositiveInteger(movieId, "movieId");
+
+		try {
+			const response = await tmdbFetch<TmdbMovieDetailsResponse>(
+				`/movie/${movieId}`,
+				{
+					language: TMDB_LANGUAGE,
+					append_to_response: "credits",
+				},
+				{
+					signal,
+				},
+			);
+
+			return mapTmdbMovieDetail(response);
+		} catch (error: unknown) {
+			this.rethrowMediaDetailError(error, "movie", movieId);
+		}
 	}
 
 	async getSeriesDetails(
 		seriesId: number,
 		signal?: AbortSignal,
-	): Promise<Record<string, unknown>> {
-		return tmdbFetch<Record<string, unknown>>(
-			`/tv/${seriesId}`,
-			{
-				language: TMDB_LANGUAGE,
-				append_to_response: "recommendations,credits,videos",
-			},
-			{
-				signal,
-			},
-		);
+	): Promise<MediaDetail> {
+		this.assertPositiveInteger(seriesId, "seriesId");
+
+		try {
+			const response = await tmdbFetch<TmdbSeriesDetailsResponse>(
+				`/tv/${seriesId}`,
+				{
+					language: TMDB_LANGUAGE,
+					append_to_response: "credits",
+				},
+				{
+					signal,
+				},
+			);
+
+			return mapTmdbSeriesDetail(response);
+		} catch (error: unknown) {
+			this.rethrowMediaDetailError(error, "tv", seriesId);
+		}
 	}
 
 	async getSeriesSeason(
@@ -241,6 +287,9 @@ export class TmdbMediaService {
 		seasonNumber: number,
 		signal?: AbortSignal,
 	): Promise<Record<string, unknown>> {
+		this.assertPositiveInteger(seriesId, "seriesId");
+		this.assertPositiveInteger(seasonNumber, "seasonNumber");
+
 		return tmdbFetch<Record<string, unknown>>(
 			`/tv/${seriesId}/season/${seasonNumber}`,
 			{
@@ -391,6 +440,36 @@ export class TmdbMediaService {
 
 	private normalizeGenreName(value: string): string {
 		return value.trim().toLocaleLowerCase("en-US");
+	}
+
+	private assertPositiveInteger(value: number, parameterName: string): void {
+		if (!Number.isSafeInteger(value) || value <= 0) {
+			throw new TmdbRequestError(
+				`${parameterName} debe ser un entero positivo válido.`,
+			);
+		}
+	}
+
+	private rethrowMediaDetailError(
+		error: unknown,
+		mediaType: MediaType,
+		mediaId: number,
+	): never {
+		if (this.getHttpStatus(error) === 404) {
+			throw new TmdbMediaNotFoundError(mediaType, mediaId);
+		}
+
+		throw error;
+	}
+
+	private getHttpStatus(error: unknown): number | null {
+		if (typeof error !== "object" || error === null || !("status" in error)) {
+			return null;
+		}
+
+		const status = error.status;
+
+		return typeof status === "number" ? status : null;
 	}
 
 	private selectHero(sections: readonly MediaSection[]): MediaItem | null {

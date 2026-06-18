@@ -1273,25 +1273,48 @@ describe("TmdbMediaService.getDocumentaries", () => {
 });
 
 describe("TmdbMediaService detail requests", () => {
-	it("consulta el detalle de una película", async () => {
+	it("consulta y normaliza el detalle de una película", async () => {
 		const service = new TmdbMediaService();
-		const abortController = new AbortController();
+
 		const response = {
 			id: 101,
 			title: "Detalle de película",
 		};
 
+		const abortController = new AbortController();
+
 		mocks.tmdbFetch.mockResolvedValue(response);
 
 		await expect(
 			service.getMovieDetails(101, abortController.signal),
-		).resolves.toEqual(response);
+		).resolves.toEqual({
+			id: 101,
+			mediaType: "movie",
+			title: "Detalle de película",
+			originalTitle: null,
+			overview: "",
+			posterPath: null,
+			backdropPath: null,
+			genres: [],
+			voteAverage: 0,
+			voteCount: 0,
+			releaseDate: null,
+			status: null,
+			tagline: null,
+			originalLanguage: null,
+			runtime: null,
+			numberOfSeasons: null,
+			numberOfEpisodes: null,
+			seasons: [],
+			cast: [],
+		});
 
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
 		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
 			"/movie/101",
 			{
 				language: "es-ES",
-				append_to_response: "recommendations,credits,videos",
+				append_to_response: "credits",
 			},
 			{
 				signal: abortController.signal,
@@ -1299,8 +1322,9 @@ describe("TmdbMediaService detail requests", () => {
 		);
 	});
 
-	it("consulta el detalle de una serie", async () => {
+	it("consulta y normaliza el detalle de una serie", async () => {
 		const service = new TmdbMediaService();
+
 		const response = {
 			id: 202,
 			name: "Detalle de serie",
@@ -1308,13 +1332,34 @@ describe("TmdbMediaService detail requests", () => {
 
 		mocks.tmdbFetch.mockResolvedValue(response);
 
-		await expect(service.getSeriesDetails(202)).resolves.toEqual(response);
+		await expect(service.getSeriesDetails(202)).resolves.toEqual({
+			id: 202,
+			mediaType: "tv",
+			title: "Detalle de serie",
+			originalTitle: null,
+			overview: "",
+			posterPath: null,
+			backdropPath: null,
+			genres: [],
+			voteAverage: 0,
+			voteCount: 0,
+			releaseDate: null,
+			status: null,
+			tagline: null,
+			originalLanguage: null,
+			runtime: null,
+			numberOfSeasons: null,
+			numberOfEpisodes: null,
+			seasons: [],
+			cast: [],
+		});
 
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
 		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
 			"/tv/202",
 			{
 				language: "es-ES",
-				append_to_response: "recommendations,credits,videos",
+				append_to_response: "credits",
 			},
 			{
 				signal: undefined,

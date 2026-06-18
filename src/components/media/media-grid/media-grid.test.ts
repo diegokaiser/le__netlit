@@ -237,9 +237,11 @@ describe("MediaGrid", () => {
 		await card.updateComplete;
 
 		expect(card.shadowRoot).not.toBeNull();
-		expect(card.shadowRoot?.querySelector("button.card")).not.toBeNull();
 
-		expect(shadowRoot.querySelector("button.card")).toBeNull();
+		expect(card.shadowRoot?.querySelector("a.card")).not.toBeNull();
+
+		expect(shadowRoot.querySelector("a.card")).toBeNull();
+
 		expect(shadowRoot.querySelector("img.poster")).toBeNull();
 		expect(shadowRoot.querySelector(".poster-wrapper")).toBeNull();
 		expect(shadowRoot.querySelector(".details")).toBeNull();

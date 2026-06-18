@@ -87,27 +87,25 @@ describe("MediaCard", () => {
 		const element = await renderMediaCard(createMedia());
 
 		expect(element.shadowRoot).not.toBeNull();
-		expect(element.querySelector("button")).toBeNull();
-		expect(element.shadowRoot?.querySelector("button")).not.toBeNull();
+		expect(element.querySelector("a.card")).toBeNull();
+		expect(element.shadowRoot?.querySelector("a.card")).not.toBeNull();
 	});
 
 	it("no renderiza contenido cuando no recibe media", async () => {
 		const element = await renderMediaCard();
 		const shadowRoot = getShadowRoot(element);
 
-		expect(shadowRoot.querySelector("button")).toBeNull();
+		expect(shadowRoot.querySelector("a.card")).toBeNull();
+		expect(shadowRoot.querySelector("img.poster")).toBeNull();
 		expect(mocks.buildTmdbImageUrl).not.toHaveBeenCalled();
 	});
 
-	it("renderiza el póster con lazy loading y atributos accesibles", async () => {
+	it("renderiza un enlace al detalle y el póster con atributos accesibles", async () => {
 		const media = createMedia();
 		const element = await renderMediaCard(media);
 		const shadowRoot = getShadowRoot(element);
 
-		const button = getRequiredElement<HTMLButtonElement>(
-			shadowRoot,
-			"button.card",
-		);
+		const link = getRequiredElement<HTMLAnchorElement>(shadowRoot, "a.card");
 		const poster = getRequiredElement<HTMLImageElement>(
 			shadowRoot,
 			"img.poster",
@@ -119,8 +117,8 @@ describe("MediaCard", () => {
 			"w342",
 		);
 
-		expect(button.type).toBe("button");
-		expect(button.getAttribute("aria-label")).toBe("Seleccionar Dune");
+		expect(link.getAttribute("href")).toBe("/media/movie/101");
+		expect(link.getAttribute("aria-label")).toBe("Ver detalles de Dune");
 
 		expect(poster.getAttribute("src")).toBe(POSTER_URL);
 		expect(poster.getAttribute("alt")).toBe("Póster de Dune");
@@ -128,6 +126,23 @@ describe("MediaCard", () => {
 		expect(poster.getAttribute("height")).toBe("513");
 		expect(poster.getAttribute("loading")).toBe("lazy");
 		expect(poster.getAttribute("decoding")).toBe("async");
+	});
+
+	it("construye la ruta de detalle usando el tipo técnico tv", async () => {
+		const media = createMedia({
+			id: 202,
+			mediaType: "tv",
+			title: "Serie de prueba",
+		});
+
+		const element = await renderMediaCard(media);
+		const shadowRoot = getShadowRoot(element);
+		const link = getRequiredElement<HTMLAnchorElement>(shadowRoot, "a.card");
+
+		expect(link.getAttribute("href")).toBe("/media/tv/202");
+		expect(link.getAttribute("aria-label")).toBe(
+			"Ver detalles de Serie de prueba",
+		);
 	});
 
 	it("muestra título, año y valoración", async () => {
@@ -189,10 +204,15 @@ describe("MediaCard", () => {
 		const element = await renderMediaCard(media);
 		const shadowRoot = getShadowRoot(element);
 
+		const link = getRequiredElement<HTMLAnchorElement>(shadowRoot, "a.card");
 		const fallback = getRequiredElement<HTMLElement>(shadowRoot, ".fallback");
 
 		expect(mocks.buildTmdbImageUrl).toHaveBeenCalledWith(null, "w342");
 		expect(shadowRoot.querySelector("img.poster")).toBeNull();
+
+		expect(link.getAttribute("href")).toBe("/media/movie/101");
+		expect(link.getAttribute("aria-label")).toBe("Ver detalles de Sin póster");
+
 		expect(fallback.getAttribute("role")).toBe("img");
 		expect(fallback.getAttribute("aria-label")).toBe(
 			"Póster no disponible para Sin póster",
@@ -260,9 +280,9 @@ describe("MediaCard", () => {
 	it("emite media-select con el contenido, bubbles y composed", async () => {
 		const media = createMedia();
 		const element = await renderMediaCard(media);
-		const button = getRequiredElement<HTMLButtonElement>(
+		const link = getRequiredElement<HTMLAnchorElement>(
 			getShadowRoot(element),
-			"button.card",
+			"a.card",
 		);
 
 		let receivedEvent: MediaSelectEvent | undefined;
@@ -275,7 +295,15 @@ describe("MediaCard", () => {
 			{ once: true },
 		);
 
-		button.click();
+		link.addEventListener(
+			"click",
+			(event) => {
+				event.preventDefault();
+			},
+			{ once: true },
+		);
+
+		link.click();
 
 		expect(receivedEvent).toBeDefined();
 		expect(receivedEvent?.detail).toEqual({

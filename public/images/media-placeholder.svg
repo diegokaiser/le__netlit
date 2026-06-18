@@ -1,0 +1,57 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="600"
+  height="900"
+  viewBox="0 0 600 900"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">Imagen no disponible</title>
+  <desc id="description">
+    Marcador visual de Nexlit para contenido sin imagen.
+  </desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#171717" />
+      <stop offset="1" stop-color="#262626" />
+    </linearGradient>
+  </defs>
+
+  <rect width="600" height="900" fill="url(#background)" />
+
+  <g
+    fill="none"
+    stroke="#737373"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <rect x="145" y="250" width="310" height="260" rx="24" />
+    <path d="M175 470l90-95 70 70 55-55 45 45" />
+    <circle cx="365" cy="325" r="35" />
+  </g>
+
+  <text
+    x="300"
+    y="610"
+    fill="#d4d4d4"
+    font-family="system-ui, sans-serif"
+    font-size="38"
+    font-weight="700"
+    text-anchor="middle"
+  >
+    NEXLIT
+  </text>
+
+  <text
+    x="300"
+    y="665"
+    fill="#a3a3a3"
+    font-family="system-ui, sans-serif"
+    font-size="25"
+    text-anchor="middle"
+  >
+    Imagen no disponible
+  </text>
+</svg>

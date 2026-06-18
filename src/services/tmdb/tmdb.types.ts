@@ -83,3 +83,50 @@ export interface TmdbGenre {
 export interface TmdbGenreListResponse {
 	genres: TmdbGenre[];
 }
+
+export type MediaGenre = Readonly<{
+	id: number;
+	name: string;
+}>;
+
+export type MediaSeasonSummary = Readonly<{
+	id: number;
+	seasonNumber: number;
+	name: string;
+	overview: string;
+	posterPath: string | null;
+	episodeCount: number;
+	airDate: string | null;
+}>;
+
+export type MediaCastMember = Readonly<{
+	id: number;
+	name: string;
+	character: string | null;
+	profilePath: string | null;
+}>;
+
+export type MediaDetail = Readonly<{
+	id: number;
+	mediaType: MediaType;
+	title: string;
+	originalTitle: string | null;
+	overview: string;
+	posterPath: string | null;
+	backdropPath: string | null;
+	genres: readonly MediaGenre[];
+	voteAverage: number;
+	voteCount: number;
+	releaseDate: string | null;
+	status: string | null;
+	tagline: string | null;
+	originalLanguage: string | null;
+
+	runtime: number | null;
+
+	numberOfSeasons: number | null;
+	numberOfEpisodes: number | null;
+	seasons: readonly MediaSeasonSummary[];
+
+	cast: readonly MediaCastMember[];
+}>;

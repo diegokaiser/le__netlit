@@ -141,6 +141,7 @@ describe("initRouter", () => {
 			ROUTES.welcome,
 			ROUTES.subcategory,
 			ROUTES.category,
+			ROUTES.mediaDetail,
 			ROUTES.createProfile,
 			ROUTES.profiles,
 			ROUTES.profile,

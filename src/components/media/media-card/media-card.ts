@@ -1,5 +1,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+
+import { buildMediaDetailPath } from "../../../core/routing/media-routes";
 import { buildTmdbImageUrl } from "../../../core/utils/build-tmdb-image-url";
 import type { MediaItem } from "../../../services/tmdb/tmdb.types";
 import { createMediaSelectEvent } from "../media.events";
@@ -15,7 +17,7 @@ export class MediaCard extends LitElement {
 	static styles = css`
 		:host {
 			display: block;
-			width: clamp(9rem, 20vw, 12rem);
+			width: var(--media-card-width, clamp(9rem, 20vw, 12rem));
 			flex: 0 0 auto;
 			color: #ffffff;
 		}
@@ -23,12 +25,11 @@ export class MediaCard extends LitElement {
 		.card {
 			display: block;
 			width: 100%;
-			padding: 0;
 			overflow: hidden;
 			color: inherit;
 			text-align: left;
+			text-decoration: none;
 			background: transparent;
-			border: 0;
 			border-radius: 0.75rem;
 			cursor: pointer;
 		}
@@ -64,6 +65,7 @@ export class MediaCard extends LitElement {
 			height: 100%;
 			padding: 1rem;
 			place-items: center;
+			box-sizing: border-box;
 			color: #d4d4d8;
 			text-align: center;
 			background: radial-gradient(circle at top, #3f3f46, #18181b 70%);
@@ -80,6 +82,7 @@ export class MediaCard extends LitElement {
 			min-height: 2.5em;
 			margin: 0;
 			overflow: hidden;
+			color: #ffffff;
 			font-size: 0.9rem;
 			font-weight: 650;
 			line-height: 1.25;
@@ -127,11 +130,16 @@ export class MediaCard extends LitElement {
 		const year = this.getYear(this.media.releaseDate);
 		const hasRating = this.media.voteAverage > 0;
 
+		const detailPath = buildMediaDetailPath(
+			this.media.mediaType,
+			this.media.id,
+		);
+
 		return html`
-			<button
+			<a
 				class="card"
-				type="button"
-				aria-label=${`Seleccionar ${this.media.title}`}
+				href=${detailPath}
+				aria-label=${`Ver detalles de ${this.media.title}`}
 				@click=${this.handleSelection}
 			>
 				<div class="poster-wrapper">
@@ -170,13 +178,15 @@ export class MediaCard extends LitElement {
 										class="rating"
 										aria-label=${`Valoración ${this.media.voteAverage.toFixed(1)} de 10`}
 									>
-										★ ${this.media.voteAverage.toFixed(1)}
+										<span aria-hidden="true">
+											★ ${this.media.voteAverage.toFixed(1)}
+										</span>
 									</span>
 								`
 							: nothing}
 					</div>
 				</div>
-			</button>
+			</a>
 		`;
 	}
 

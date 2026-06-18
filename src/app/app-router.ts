@@ -106,6 +106,21 @@ export function initRouter(outlet: HTMLElement) {
 			},
 		},
 		{
+			path: ROUTES.mediaDetail,
+			component: "app-media-detail-page",
+			action: async (_context, commands) => {
+				const user = await requireAuthenticatedUser();
+
+				if (!user) {
+					return commands.redirect(ROUTES.login);
+				}
+
+				await import("../pages/media-detail/media-detail.page");
+
+				return commands.component("app-media-detail-page");
+			},
+		},
+		{
 			path: ROUTES.createProfile,
 			action: async (_context, commands) => {
 				const user = await requireAuthenticatedUser();
@@ -147,9 +162,10 @@ export function initRouter(outlet: HTMLElement) {
 		},
 		{
 			path: "(.*)",
-			component: "app-welcome-screen-page",
-			action: async () => {
+			action: async (_context, commands) => {
 				await import("../pages/welcome-screen/welcome-screen.page");
+
+				return commands.component("app-welcome-screen-page");
 			},
 		},
 	]);

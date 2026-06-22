@@ -149,6 +149,7 @@ describe("initRouter", () => {
 			ROUTES.welcome,
 			ROUTES.subcategory,
 			ROUTES.category,
+			ROUTES.seasonDetail,
 			ROUTES.mediaDetail,
 			ROUTES.createProfile,
 			ROUTES.profiles,
@@ -202,12 +203,20 @@ describe("initRouter", () => {
 		expect(mediaDetailRouteIndex).toBeLessThan(fallbackRouteIndex);
 	});
 
-	it("no registra todavía la ruta funcional de temporadas", () => {
+	it("registra Season Detail antes de Media Detail", () => {
 		const { routes } = initializeRouter();
 
-		expect(routes.some((route) => route.path === ROUTES.seasonDetail)).toBe(
-			false,
+		const seasonDetailIndex = routes.findIndex(
+			(route) => route.path === ROUTES.seasonDetail,
 		);
+
+		const mediaDetailIndex = routes.findIndex(
+			(route) => route.path === ROUTES.mediaDetail,
+		);
+
+		expect(seasonDetailIndex).toBeGreaterThanOrEqual(0);
+		expect(mediaDetailIndex).toBeGreaterThanOrEqual(0);
+		expect(seasonDetailIndex).toBeLessThan(mediaDetailIndex);
 	});
 
 	it("redirige Media Detail a login cuando no existe sesión", async () => {

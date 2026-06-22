@@ -2,11 +2,15 @@ import {
 	mapTmdbMovieDetail,
 	mapTmdbSeriesDetail,
 } from "./mappers/map-tmdb-media-detail";
+import { mapTmdbSeasonDetail } from "./mappers/map-tmdb-season-detail";
 import type {
 	TmdbMovieDetailsResponse,
 	TmdbSeriesDetailsResponse,
 } from "./tmdb-detail-api.types";
-import { TmdbMediaNotFoundError } from "./tmdb-media.errors";
+import {
+	TmdbMediaNotFoundError,
+	TmdbSeasonNotFoundError,
+} from "./tmdb-media.errors";
 import { tmdbFetch } from "./tmdb.client";
 import {
 	mapTmdbMovie,
@@ -21,9 +25,11 @@ import type {
 	MediaSection,
 	MediaSectionId,
 	MediaType,
+	SeasonDetail,
 	TmdbGenreListResponse,
 	TmdbListResponse,
 	TmdbMovieResult,
+	TmdbSeasonDetailResponse,
 	TmdbTrendingResult,
 	TmdbTvResult,
 	WelcomeContent,
@@ -286,19 +292,45 @@ export class TmdbMediaService {
 		seriesId: number,
 		seasonNumber: number,
 		signal?: AbortSignal,
-	): Promise<Record<string, unknown>> {
+	): Promise<SeasonDetail> {
 		this.assertPositiveInteger(seriesId, "seriesId");
-		this.assertPositiveInteger(seasonNumber, "seasonNumber");
+		this.assertNonNegativeInteger(seasonNumber, "seasonNumber");
 
-		return tmdbFetch<Record<string, unknown>>(
-			`/tv/${seriesId}/season/${seasonNumber}`,
-			{
-				language: TMDB_LANGUAGE,
-			},
-			{
-				signal,
-			},
-		);
+		try {
+			const response = await tmdbFetch<TmdbSeasonDetailResponse>(
+				`/tv/${seriesId}/season/${seasonNumber}`,
+				{
+					language: TMDB_LANGUAGE,
+				},
+				{
+					signal,
+				},
+			);
+
+			return mapTmdbSeasonDetail(response, seriesId, seasonNumber);
+		} catch (error: unknown) {
+			this.rethrowSeasonDetailError(error, seriesId, seasonNumber);
+		}
+	}
+
+	private assertNonNegativeInteger(value: number, parameterName: string): void {
+		if (!Number.isSafeInteger(value) || value < 0) {
+			throw new TmdbRequestError(
+				`${parameterName} debe ser un entero no negativo válido.`,
+			);
+		}
+	}
+
+	private rethrowSeasonDetailError(
+		error: unknown,
+		seriesId: number,
+		seasonNumber: number,
+	): never {
+		if (this.getHttpStatus(error) === 404) {
+			throw new TmdbSeasonNotFoundError(seriesId, seasonNumber);
+		}
+
+		throw error;
 	}
 
 	async getWelcomeContent(signal?: AbortSignal): Promise<WelcomeContent> {

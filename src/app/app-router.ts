@@ -106,6 +106,21 @@ export function initRouter(outlet: HTMLElement) {
 			},
 		},
 		{
+			path: ROUTES.seasonDetail,
+			component: "app-season-detail-page",
+			action: async (_context, commands) => {
+				const user = await requireAuthenticatedUser();
+
+				if (!user) {
+					return commands.redirect(ROUTES.login);
+				}
+
+				await import("../pages/season-detail/season-detail.page");
+
+				return commands.component("app-season-detail-page");
+			},
+		},
+		{
 			path: ROUTES.mediaDetail,
 			component: "app-media-detail-page",
 			action: async (_context, commands) => {

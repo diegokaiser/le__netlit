@@ -130,3 +130,53 @@ export type MediaDetail = Readonly<{
 
 	cast: readonly MediaCastMember[];
 }>;
+
+export type EpisodeDetail = Readonly<{
+	id: number;
+	episodeNumber: number;
+	seasonNumber: number;
+	name: string;
+	overview: string;
+	stillPath: string | null;
+	airDate?: string;
+	runtime?: number;
+	voteAverage?: number;
+	voteCount?: number;
+}>;
+
+export type SeasonDetail = Readonly<{
+	id: number;
+	seriesId: number;
+	seasonNumber: number;
+	name: string;
+	overview: string;
+	posterPath: string | null;
+	airDate?: string;
+	episodeCount: number;
+	voteAverage?: number;
+	episodes: readonly EpisodeDetail[];
+}>;
+
+export type TmdbEpisodeResponse = {
+	id?: number | null;
+	episode_number?: number | null;
+	season_number?: number | null;
+	name?: string | null;
+	overview?: string | null;
+	still_path?: string | null;
+	air_date?: string | null;
+	runtime?: number | null;
+	vote_average?: number | null;
+	vote_count?: number | null;
+};
+
+export type TmdbSeasonDetailResponse = {
+	id?: number | null;
+	season_number?: number | null;
+	name?: string | null;
+	overview?: string | null;
+	poster_path?: string | null;
+	air_date?: string | null;
+	vote_average?: number | null;
+	episodes?: TmdbEpisodeResponse[] | null;
+};

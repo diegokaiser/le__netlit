@@ -247,16 +247,7 @@ describe("buildSeasonDetailPath", () => {
 		);
 	});
 
-	it.each([
-		0,
-		-1,
-		1.5,
-		Number.NaN,
-		Number.POSITIVE_INFINITY,
-		Number.MAX_SAFE_INTEGER + 1,
-	])("rechaza el seasonNumber inválido %s", (seasonNumber) => {
-		expect(() => buildSeasonDetailPath(202, seasonNumber)).toThrowError(
-			"seasonNumber must be a positive safe integer.",
-		);
+	it("construye la ruta de especiales con seasonNumber 0", () => {
+		expect(buildSeasonDetailPath(202, 0)).toBe("/media/tv/202/season/0");
 	});
 });

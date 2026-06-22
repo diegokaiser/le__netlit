@@ -1790,21 +1790,126 @@ describe("TmdbMediaService detail requests", () => {
 		);
 	});
 
-	it("consulta una temporada de una serie mediante el método existente", async () => {
+	it("consulta y normaliza una temporada de una serie", async () => {
 		const service = new TmdbMediaService();
 
 		const response = {
 			id: 303,
 			season_number: 2,
+			name: "Temporada dos",
+			overview: "La segunda temporada.",
+			poster_path: "/season-poster.jpg",
+			air_date: "2012-01-01",
+			vote_average: 8.4,
+			episodes: [
+				{
+					id: 9002,
+					episode_number: 2,
+					season_number: 2,
+					name: "Segundo episodio",
+					overview: "Continúa la historia.",
+					still_path: "/episode-2.jpg",
+					air_date: "2012-01-08",
+					runtime: 47,
+					vote_average: 8.5,
+					vote_count: 123,
+				},
+				{
+					id: 9001,
+					episode_number: 1,
+					season_number: 2,
+					name: "Primer episodio",
+					overview: "Comienza la temporada.",
+					still_path: "/episode-1.jpg",
+					air_date: "2012-01-01",
+					runtime: 45,
+					vote_average: 8.1,
+					vote_count: 100,
+				},
+			],
 		};
 
 		mocks.tmdbFetch.mockResolvedValue(response);
 
-		await expect(service.getSeriesSeason(202, 2)).resolves.toEqual(response);
+		await expect(service.getSeriesSeason(202, 2)).resolves.toEqual({
+			id: 303,
+			seriesId: 202,
+			seasonNumber: 2,
+			name: "Temporada dos",
+			overview: "La segunda temporada.",
+			posterPath: "/season-poster.jpg",
+			airDate: "2012-01-01",
+			episodeCount: 2,
+			voteAverage: 8.4,
+			episodes: [
+				{
+					id: 9001,
+					episodeNumber: 1,
+					seasonNumber: 2,
+					name: "Primer episodio",
+					overview: "Comienza la temporada.",
+					stillPath: "/episode-1.jpg",
+					airDate: "2012-01-01",
+					runtime: 45,
+					voteAverage: 8.1,
+					voteCount: 100,
+				},
+				{
+					id: 9002,
+					episodeNumber: 2,
+					seasonNumber: 2,
+					name: "Segundo episodio",
+					overview: "Continúa la historia.",
+					stillPath: "/episode-2.jpg",
+					airDate: "2012-01-08",
+					runtime: 47,
+					voteAverage: 8.5,
+					voteCount: 123,
+				},
+			],
+		});
 
 		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
 		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
 			"/tv/202/season/2",
+			{
+				language: "es-ES",
+			},
+			{
+				signal: undefined,
+			},
+		);
+	});
+
+	it("permite consultar la temporada 0 de especiales", async () => {
+		const service = new TmdbMediaService();
+
+		mocks.tmdbFetch.mockResolvedValue({
+			id: 300,
+			season_number: 0,
+			name: "",
+			overview: "",
+			poster_path: null,
+			air_date: null,
+			vote_average: 0,
+			episodes: [],
+		});
+
+		await expect(service.getSeriesSeason(202, 0)).resolves.toEqual({
+			id: 300,
+			seriesId: 202,
+			seasonNumber: 0,
+			name: "Especiales",
+			overview: "",
+			posterPath: null,
+			episodeCount: 0,
+			voteAverage: 0,
+			episodes: [],
+		});
+
+		expect(mocks.tmdbFetch).toHaveBeenCalledTimes(1);
+		expect(mocks.tmdbFetch).toHaveBeenCalledWith(
+			"/tv/202/season/0",
 			{
 				language: "es-ES",
 			},

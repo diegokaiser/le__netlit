@@ -13,10 +13,29 @@ export class TmdbMediaNotFoundError extends Error {
 	}
 }
 
+export class TmdbSeasonNotFoundError extends Error {
+	readonly seriesId: number;
+	readonly seasonNumber: number;
+
+	constructor(seriesId: number, seasonNumber: number) {
+		super("The requested season resource was not found.");
+
+		this.name = "TmdbSeasonNotFoundError";
+		this.seriesId = seriesId;
+		this.seasonNumber = seasonNumber;
+	}
+}
+
 export function isTmdbMediaNotFoundError(
 	error: unknown,
 ): error is TmdbMediaNotFoundError {
 	return error instanceof TmdbMediaNotFoundError;
+}
+
+export function isTmdbSeasonNotFoundError(
+	error: unknown,
+): error is TmdbSeasonNotFoundError {
+	return error instanceof TmdbSeasonNotFoundError;
 }
 
 export function isAbortError(error: unknown): boolean {

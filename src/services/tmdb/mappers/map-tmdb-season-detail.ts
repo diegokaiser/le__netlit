@@ -86,7 +86,7 @@ function mapEpisode(
 ): EpisodeDetail | null {
 	if (
 		!isPositiveSafeInteger(episode.id) ||
-		!isNonNegativeSafeInteger(episode.episode_number)
+		!isPositiveSafeInteger(episode.episode_number)
 	) {
 		return null;
 	}
@@ -115,6 +115,21 @@ function mapEpisode(
 	};
 }
 
+function removeDuplicatedEpisodesById(
+	episodes: readonly EpisodeDetail[],
+): EpisodeDetail[] {
+	const seenEpisodeIds = new Set<number>();
+
+	return episodes.filter((episode) => {
+		if (seenEpisodeIds.has(episode.id)) {
+			return false;
+		}
+
+		seenEpisodeIds.add(episode.id);
+		return true;
+	});
+}
+
 export function mapTmdbSeasonDetail(
 	response: TmdbSeasonDetailResponse,
 	seriesId: number,
@@ -136,13 +151,14 @@ export function mapTmdbSeasonDetail(
 	const airDate = normalizeDate(response.air_date);
 	const voteAverage = normalizeVoteAverage(response.vote_average);
 
-	const episodes = (response.episodes ?? [])
-		.map((episode) => mapEpisode(episode, requestedSeasonNumber))
-		.filter((episode): episode is EpisodeDetail => episode !== null)
-		.sort(
-			(firstEpisode, secondEpisode) =>
-				firstEpisode.episodeNumber - secondEpisode.episodeNumber,
-		);
+	const episodes = removeDuplicatedEpisodesById(
+		(response.episodes ?? [])
+			.map((episode) => mapEpisode(episode, requestedSeasonNumber))
+			.filter((episode): episode is EpisodeDetail => episode !== null),
+	).sort(
+		(firstEpisode, secondEpisode) =>
+			firstEpisode.episodeNumber - secondEpisode.episodeNumber,
+	);
 
 	return {
 		id: response.id,
